@@ -1,33 +1,47 @@
 #!/usr/bin/env python3
 """
-operasyonel_hava.py  ·  YangınRiski.com  (FWI'li, dayanikli surum)
-Ulusal orman izgarasinin her noktasi icin Open-Meteo'dan canli tahmin ceker,
-gecmis pencereyle FWI sistemini (FFMC, DMC, DC, ISI) hesaplar ve her tahmin
-gunune ekler. Cikti operasyonel_hafta.py'ye beslenir. fwi.py ayni klasorde olmali.
+operasyonel_hava.py  ·  YangınRiski.com  (durum tasiyan surum)
+
+Her sabah 60 gunluk gecmisi yeniden cekmek yerine, FWI kodlarinin dunku halini
+data/fwi_durum.json dosyasindan okur, yalnizca yeni gunleri isleyip ilerletir ve
+yeni durumu geri yazar. Boylece istek basina gun sayisi 67'den 14'e iner ve
+gunluk agirlikli Open-Meteo maliyeti yaklasik 25.100'den 5.254'e duser
+(ucretsiz gunluk sinir 10.000).
+
+Neden 7 gun gecmis isteniyor: agirlik formulunde gun sayisinin asgarisi 14
+(7 gecmis + 7 tahmin). Yani gecmis 7 gun bedavaya geliyor. Faydasi: kosu
+birkac gun patlarsa eksik gunler kendiliginden tamamlanir.
+
+Modlar:
+  ILIK  (varsayilan)  durum dosyasi varsa: past_days=7, durumu ilerletir.
+  SOGUK (ilk kurulum) durum yoksa, bozuksa ya da bosluk 7 gunu asarsa:
+        past_days=60 ile tam isinma yapar ve durumu sifirdan kurar.
+        Bu kosu pahalidir (yaklasik 25.100 agirlikli cagri), bir kez ve
+        tercihen kendi bilgisayarinda calistirilmalidir.
+  OM_SOGUK=1 ile soguk baslangic elle zorlanabilir.
 
 Calistir:  python operasyonel_hava.py
-Cikti:     operasyonel_tahmin.json
-Devam edebilir; kesilirse tekrar calistir (cikti dosyasi duruyorsa kaldigi yerden).
+Cikti:     operasyonel_tahmin.json   (operasyonel_hafta.py'ye girdi, semasi degismedi)
+           data/fwi_durum.json       (ertesi gunun baslangic durumu)
 
-Bu surumdeki dayaniklilik degisiklikleri:
-  1. Zaman asimi ve baglanti hatasi da tekrar denenir (once yalnizca 429 deneniyordu;
-     GitHub kosucularinda kosuyu dusuren tam buydu).
-  2. Batch kucultuldu (50 -> 25) ve istekler arasi bekleme uzatildi; toplam agirlikli
-     cagri sayisi degismez, tek istegin yuku yariya iner.
-  3. Bir batch tum denemelerden sonra da alinamazsa betik durmaz, o noktalari atlar.
-     Kayip esigi (varsayilan yuzde 10) asilirsa hata koduyla durur, boylece panel
-     yarim veriyle guncellenmez.
-  4. 429 ya da zaman asimi gorulurse bekleme kendiliginden uzar (adaptif tempo).
-  5. Ayarlar ortam degiskeniyle degistirilebilir: OM_BATCH, OM_SLEEP, OM_TIMEOUT,
-     OM_TRIES, OM_MAX_KAYIP, OM_PAST_DAYS.
+Dayaniklilik: zaman asimi, baglanti hatasi, 429 ve 5xx kademeli beklemeyle
+tekrar denenir; bir batch yine de alinamazsa o noktalar atlanir ve durumlari
+dokunulmadan kalir (ertesi gun bosluk kapanir). Kayip esigi asilirsa betik
+hata koduyla durur, panel son basarili gunun dosyasinda kalir.
 """
-import requests, json, time, os, sys
+import requests, json, time, os, sys, datetime
 import fwi
 
-FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
+UCRETSIZ_URL = "https://api.open-meteo.com/v1/forecast"
+MUSTERI_URL = "https://customer-api.open-meteo.com/v1/forecast"
+# Anahtar ortam degiskeninden gelir, koda yazilmaz. Yoksa ucretsiz uca duser.
+OM_APIKEY = os.environ.get("OM_APIKEY", "").strip()
+FORECAST_URL = MUSTERI_URL if OM_APIKEY else UCRETSIZ_URL
 BAZ_FILE = "noktalar_baz_grid.json"
 CIKTI = "operasyonel_tahmin.json"
+DURUM = os.path.join("data", "fwi_durum.json")
 DAILY = "temperature_2m_max,relative_humidity_2m_mean,wind_speed_10m_max,precipitation_sum"
+
 
 def ayar(ad, vars_, tip=int):
     try:
@@ -35,15 +49,21 @@ def ayar(ad, vars_, tip=int):
     except (TypeError, ValueError):
         return tip(vars_)
 
-PAST_DAYS = ayar("OM_PAST_DAYS", 60)      # DC tohumlama icin gecmis pencere
+
 FCST_DAYS = 7
-B = ayar("OM_BATCH", 25)                  # istek basina nokta
-SLEEP = ayar("OM_SLEEP", 13, float)       # istekler arasi bekleme (sn)
-TIMEOUT = ayar("OM_TIMEOUT", 60, float)   # tek istek zaman asimi (sn)
-DENEME = ayar("OM_TRIES", 6)              # batch basina deneme sayisi
-MAX_KAYIP = ayar("OM_MAX_KAYIP", 0.10, float)   # kabul edilebilir nokta kaybi orani
-BEKLE = [5, 15, 45, 90, 180]              # kademeli bekleme merdiveni
-SLEEP_UST = 45.0                          # adaptif temponun ust siniri
+ILIK_GECMIS = ayar("OM_PAST_DAYS", 7)       # gunluk kosuda gecmis pencere
+SOGUK_GECMIS = ayar("OM_ISINMA", 60)        # tam isinmada gecmis pencere
+MAX_BOSLUK = ayar("OM_MAX_BOSLUK", 7)       # bu kadar gunden uzun boslukta soguk baslangic
+# Ucretli uctaki gunluk ve saatlik sinir kalktigi icin tempo hizlandirilabilir.
+B = ayar("OM_BATCH", 100 if OM_APIKEY else 25)
+SLEEP = ayar("OM_SLEEP", 1 if OM_APIKEY else 13, float)
+TIMEOUT = ayar("OM_TIMEOUT", 60, float)
+DENEME = ayar("OM_TRIES", 6)
+MAX_KAYIP = ayar("OM_MAX_KAYIP", 0.10, float)
+BEKLE = [5, 15, 45, 90, 180]
+SLEEP_UST = 45.0
+DSR_UST = 67        # yagissiz gun sayaci tavani; eski 67 gunluk pencerenin dogal siniri
+RING = 30           # precip_30d icin tasinan gun sayisi
 
 GECICI_HATALAR = (requests.exceptions.Timeout,
                   requests.exceptions.ConnectionError,
@@ -52,6 +72,22 @@ GECICI_HATALAR = (requests.exceptions.Timeout,
 
 class Alinamadi(Exception):
     """Bir batch butun denemelerden sonra da alinamadi."""
+
+
+# ----------------------------------------------------------------------
+# girdi ve durum
+# ----------------------------------------------------------------------
+def simdi_tr():
+    try:
+        from zoneinfo import ZoneInfo
+        tz = ZoneInfo("Europe/Istanbul")
+    except Exception:
+        tz = datetime.timezone(datetime.timedelta(hours=3))
+    return datetime.datetime.now(tz).replace(microsecond=0).isoformat()
+
+
+def gun(s):
+    return datetime.date.fromisoformat(str(s)[:10])
 
 
 def yukle_baz():
@@ -63,17 +99,50 @@ def yukle_baz():
     raise FileNotFoundError(BAZ_FILE)
 
 
+def durum_oku():
+    """data/fwi_durum.json -> (son_tarih, {ad: [ffmc, dmc, dc, dsr, yagis]})"""
+    if not os.path.exists(DURUM):
+        return None, {}
+    try:
+        d = json.load(open(DURUM, encoding="utf-8"))
+        h = {}
+        for i, ad in enumerate(d["ad"]):
+            h[ad] = [d["ffmc"][i], d["dmc"][i], d["dc"][i], d["dsr"][i], list(d["yagis"][i])]
+        return d.get("son_tarih"), h
+    except Exception as e:
+        print("UYARI: durum dosyasi okunamadi (%s), soguk baslangica dusuluyor." % e)
+        return None, {}
+
+
+def durum_yaz(son_tarih, h):
+    adlar = sorted(h)
+    d = {"guncelleme": simdi_tr(), "son_tarih": son_tarih, "ad": adlar,
+         "ffmc": [round(h[a][0], 2) for a in adlar],
+         "dmc": [round(h[a][1], 2) for a in adlar],
+         "dc": [round(h[a][2], 2) for a in adlar],
+         "dsr": [int(h[a][3]) for a in adlar],
+         "yagis": [[round(x, 1) for x in h[a][4]] for a in adlar]}
+    if os.path.dirname(DURUM):
+        os.makedirs(os.path.dirname(DURUM), exist_ok=True)
+    with open(DURUM, "w", encoding="utf-8") as fh:
+        json.dump(d, fh, ensure_ascii=False, separators=(",", ":"))
+    return os.path.getsize(DURUM)
+
+
+# ----------------------------------------------------------------------
+# cekim
+# ----------------------------------------------------------------------
 def bekleme(i):
     return BEKLE[i] if i < len(BEKLE) else BEKLE[-1]
 
 
-def fetch(points, tempo):
-    """Bir batch ceker. Gecici hatalarda kademeli bekleyip tekrar dener.
-    Doner: (sonuc_listesi, yeni_tempo). Basarisizsa Alinamadi firlatir."""
+def fetch(points, past_days, tempo):
     params = {"latitude": ",".join(str(p[1]) for p in points),
               "longitude": ",".join(str(p[2]) for p in points),
-              "daily": DAILY, "past_days": PAST_DAYS, "forecast_days": FCST_DAYS,
+              "daily": DAILY, "past_days": past_days, "forecast_days": FCST_DAYS,
               "timezone": "Europe/Istanbul"}
+    if OM_APIKEY:
+        params["apikey"] = OM_APIKEY
     son_hata = None
     for i in range(DENEME):
         try:
@@ -82,71 +151,120 @@ def fetch(points, tempo):
             son_hata = "zaman asimi / baglanti (%s)" % type(e).__name__
             tempo = min(tempo * 1.5, SLEEP_UST)
             w = bekleme(i)
-            print("    %s; %d sn bekle (deneme %d/%d, tempo %.0f sn)"
-                  % (son_hata, w, i + 1, DENEME, tempo))
-            time.sleep(w)
-            continue
+            print("    %s; %d sn bekle (deneme %d/%d, tempo %.0f sn)" % (son_hata, w, i + 1, DENEME, tempo))
+            time.sleep(w); continue
         if r.status_code == 429:
             ra = r.headers.get("Retry-After", "")
             w = int(ra) if str(ra).isdigit() else bekleme(i) * 3
             tempo = min(tempo * 1.5, SLEEP_UST)
             son_hata = "429 (kota / tempo)"
-            print("    429; %d sn bekle (deneme %d/%d, tempo %.0f sn)"
-                  % (w, i + 1, DENEME, tempo))
-            time.sleep(w)
-            continue
+            print("    429; %d sn bekle (deneme %d/%d, tempo %.0f sn)" % (w, i + 1, DENEME, tempo))
+            time.sleep(w); continue
         if r.status_code >= 500:
             son_hata = "sunucu hatasi %d" % r.status_code
             w = bekleme(i)
             print("    %s; %d sn bekle (deneme %d/%d)" % (son_hata, w, i + 1, DENEME))
-            time.sleep(w)
-            continue
+            time.sleep(w); continue
         try:
             r.raise_for_status()
             j = r.json()
         except Exception as e:
-            # 4xx ya da bozuk govde: tekrar denemek ise yaramaz, batch'i atla
             raise Alinamadi("kalici hata: %s" % e)
         return (j if isinstance(j, list) else [j]), tempo
     raise Alinamadi(son_hata or "bilinmeyen")
 
 
-def derive(daily):
-    dates = daily["time"]
-    precip = daily.get("precipitation_sum") or [0] * len(dates)
-    out = []
-    dsr = 0
-    for i, dt in enumerate(dates):
-        p = precip[i] if precip[i] is not None else 0.0
-        dsr = 0 if p > 1.0 else dsr + 1
-        p30 = sum((precip[j] or 0) for j in range(max(0, i - 29), i + 1))
-        out.append({"date": dt, "tmax": daily["temperature_2m_max"][i],
-                    "humidity": (daily.get("relative_humidity_2m_mean") or [None] * len(dates))[i],
-                    "wind": daily["wind_speed_10m_max"][i], "precip": p,
-                    "days_since_rain": dsr, "precip_30d": round(p30, 1)})
-    return out
+# ----------------------------------------------------------------------
+# hesap
+# ----------------------------------------------------------------------
+def satirlar(daily):
+    """Open-Meteo gunluk blogunu duz listeye cevirir."""
+    t = daily["time"]
+    nem = daily.get("relative_humidity_2m_mean") or [None] * len(t)
+    yagis = daily.get("precipitation_sum") or [0.0] * len(t)
+    return [{"date": dt, "tmax": daily["temperature_2m_max"][i], "humidity": nem[i],
+             "wind": daily["wind_speed_10m_max"][i],
+             "precip": (yagis[i] if yagis[i] is not None else 0.0)}
+            for i, dt in enumerate(t)]
 
 
-def fwi_ekle(days):
-    rows = [{"date": d["date"], "temp": (d["tmax"] or 0.0),
-             "rh": (d["humidity"] if d["humidity"] is not None else 50.0),
-             "wind": (d["wind"] or 0.0), "precip": d["precip"]} for d in days]
-    fs = fwi.fwi_series(rows)
-    for d, f in zip(days, fs):
-        d["ffmc"] = f["ffmc"]; d["dmc"] = f["dmc"]; d["dc"] = f["dc"]; d["isi"] = f["isi"]
-    return days
+def fwi_satir(g):
+    return {"date": g["date"], "temp": (g["tmax"] or 0.0),
+            "rh": (g["humidity"] if g["humidity"] is not None else 50.0),
+            "wind": (g["wind"] or 0.0), "precip": g["precip"]}
 
 
-def kaydet(results):
-    with open(CIKTI, "w", encoding="utf-8") as fh:
-        json.dump(results, fh, ensure_ascii=False)
+def dsr_ilerlet(dsr, precip):
+    return 0 if precip > 1.0 else min(dsr + 1, DSR_UST)
+
+
+def nokta_isle(gunler, durum_kaydi, son_tarih):
+    """Bir noktanin penceresini isler.
+    Doner: (tahmin_kayitlari, yeni_durum, gecmisin_son_gunu)"""
+    tahmin = gunler[-FCST_DAYS:]
+    gecmis = gunler[:-FCST_DAYS]
+    if not gecmis:
+        raise ValueError("gecmis pencere bos")
+
+    if durum_kaydi is None:
+        ilerlenecek = gecmis                      # soguk baslangic: tum pencereyle isin
+        f0, p0, d0, dsr, ring = 85.0, 6.0, 15.0, 0, []
+    else:
+        f0, p0, d0, dsr, ring = durum_kaydi
+        ring = list(ring)
+        ilerlenecek = [g for g in gecmis if gun(g["date"]) > gun(son_tarih)] if son_tarih else gecmis
+
+    if ilerlenecek:
+        seri = fwi.fwi_series([fwi_satir(g) for g in ilerlenecek], f0, p0, d0)
+        f0, p0, d0 = seri[-1]["ffmc"], seri[-1]["dmc"], seri[-1]["dc"]
+        for g in ilerlenecek:
+            dsr = dsr_ilerlet(dsr, g["precip"])
+            ring.append(g["precip"])
+        ring = ring[-RING:]
+
+    seri = fwi.fwi_series([fwi_satir(g) for g in tahmin], f0, p0, d0)
+    kayitlar = []
+    d = dsr
+    for k, (g, s) in enumerate(zip(tahmin, seri), start=1):
+        d = dsr_ilerlet(d, g["precip"])
+        onceki = ring[-(RING - k):] if RING - k > 0 else []
+        p30 = sum(onceki) + sum(x["precip"] for x in tahmin[:k])
+        kayitlar.append({"date": g["date"], "tmax": g["tmax"], "humidity": g["humidity"],
+                         "wind": g["wind"], "days_since_rain": d, "precip_30d": round(p30, 1),
+                         "ffmc": s["ffmc"], "dmc": s["dmc"], "dc": s["dc"], "isi": s["isi"]})
+    return kayitlar, [f0, p0, d0, dsr, ring], gecmis[-1]["date"]
 
 
 # ----------------------------------------------------------------------
+# akis
+# ----------------------------------------------------------------------
 PTS = yukle_baz()
-agirlik = len(PTS) * (max(PAST_DAYS + FCST_DAYS, 14) / 14.0)
-print("Tahmini agirlikli Open-Meteo cagrisi: %.0f (ucretsiz gunluk sinir 10.000)" % agirlik)
-print("Ayar: batch=%d, tempo=%.0f sn, zaman asimi=%.0f sn, deneme=%d, kayip esigi=%.0f%%"
+son_tarih, DURUM_H = durum_oku()
+
+zorla = bool(ayar("OM_SOGUK", 0))
+soguk = zorla or not DURUM_H
+sebep = "elle zorlandi" if zorla else "durum dosyasi yok"
+if DURUM_H and son_tarih and not soguk:
+    bosluk = (datetime.date.today() - gun(son_tarih)).days
+    eksik = sum(1 for p in PTS if p[0] not in DURUM_H)
+    if bosluk > MAX_BOSLUK:
+        soguk, sebep = True, "son durum %d gun eski (esik %d)" % (bosluk, MAX_BOSLUK)
+    elif eksik > len(PTS) * 0.02:
+        soguk, sebep = True, "%d nokta durumda yok" % eksik
+
+PAST = SOGUK_GECMIS if soguk else ILIK_GECMIS
+agirlik = len(PTS) * (max(PAST + FCST_DAYS, 14) / 14.0)
+print("Mod: %s (%s)" % ("SOGUK BASLANGIC" if soguk else "ILIK",
+                        sebep if soguk else "son durum: %s" % son_tarih))
+print("Istek penceresi: %d gecmis + %d tahmin" % (PAST, FCST_DAYS))
+if OM_APIKEY:
+    print("Uc: musteri (ticari plan, anahtar ...%s)" % OM_APIKEY[-4:])
+    print("Tahmini agirlikli cagri: %.0f (aylik butce 1.000.000; her gun bu pencereyle ~%.0f/ay)"
+          % (agirlik, agirlik * 30))
+else:
+    print("Uc: ucretsiz (anahtar yok)")
+    print("Tahmini agirlikli cagri: %.0f (ucretsiz gunluk sinir 10.000)" % agirlik)
+print("Ayar: batch=%d, tempo=%.0f sn, zaman asimi=%.0f sn, deneme=%d, kayip esigi=%.0f%%\n"
       % (B, SLEEP, TIMEOUT, DENEME, MAX_KAYIP * 100))
 
 results, done = [], set()
@@ -164,47 +282,50 @@ print("Cekilecek: %d\n" % len(kalan))
 t0 = time.time()
 tempo = SLEEP
 kayip = []
-basarisiz_batch = 0
+yeni_durum = {} if soguk else dict(DURUM_H)
+yeni_son_tarih = None
+
 for bi, k in enumerate(range(0, len(kalan), B)):
     batch = kalan[k:k + B]
     try:
-        locs, tempo = fetch(batch, tempo)
+        locs, tempo = fetch(batch, PAST, tempo)
     except Alinamadi as e:
-        basarisiz_batch += 1
         kayip.extend(p[0] for p in batch)
         print("  ATLANDI: %d nokta alinamadi (%s)" % (len(batch), e))
         time.sleep(tempo)
         continue
     for (name, lat, lon), loc in zip(batch, locs):
         try:
-            days = fwi_ekle(derive(loc["daily"]))
+            gunler = satirlar(loc["daily"])
+            kayitlar, dur, st = nokta_isle(gunler, None if soguk else DURUM_H.get(name), son_tarih)
         except Exception as e:
             kayip.append(name)
             print("  ATLANDI: %s hesaplanamadi (%s)" % (name, e))
             continue
-        fc = days[-FCST_DAYS:]
-        for d in fc:
-            d.pop("precip", None)   # precip artik gerekmez
-        results.append({"name": name, "lat": lat, "lon": lon, "forecast": fc})
+        results.append({"name": name, "lat": lat, "lon": lon, "forecast": kayitlar})
+        yeni_durum[name] = dur
+        yeni_son_tarih = st
     y = k + len(batch)
     hiz = y / max(1, time.time() - t0)
     print("  %d/%d  (~%.0f dk, kayip %d)"
           % (len(done) + y, len(PTS), (len(kalan) - y) / max(0.1, hiz) / 60, len(kayip)))
     if (bi + 1) % 10 == 0:
-        kaydet(results)
+        json.dump(results, open(CIKTI, "w", encoding="utf-8"), ensure_ascii=False)
     time.sleep(tempo)
 
-kaydet(results)
+json.dump(results, open(CIKTI, "w", encoding="utf-8"), ensure_ascii=False)
 oran = len(kayip) / max(1, len(PTS))
-print("\nCikti: %s (%d nokta, FWI kodlari eklendi)" % (CIKTI, len(results)))
-print("Kayip: %d nokta (%.1f%%), basarisiz batch: %d, sure: %.0f dk"
-      % (len(kayip), oran * 100, basarisiz_batch, (time.time() - t0) / 60))
+print("\nCikti: %s (%d nokta)" % (CIKTI, len(results)))
+print("Kayip: %d nokta (%.1f%%), sure: %.0f dk" % (len(kayip), oran * 100, (time.time() - t0) / 60))
 
-if oran > MAX_KAYIP:
-    print("\nHATA: kayip orani esigi (%.0f%%) asti, skorlama yapilmayacak." % (MAX_KAYIP * 100))
+if oran > MAX_KAYIP or not results:
+    print("\nHATA: kayip orani esigi (%.0f%%) asti, durum yazilmadi ve skorlama yapilmayacak."
+          % (MAX_KAYIP * 100))
     print("Panel son basarili gunun dosyasini gostermeye devam eder.")
     sys.exit(1)
-if not results:
-    print("\nHATA: hic nokta alinamadi.")
-    sys.exit(1)
+
+boy = durum_yaz(yeni_son_tarih, yeni_durum)
+print("Durum: %s (%d nokta, son tarih %s, %.0f KB)" % (DURUM, len(yeni_durum), yeni_son_tarih, boy / 1024))
+if kayip:
+    print("  not: %d noktanin durumu ilerletilmedi, ertesi gun kendiliginden kapanir." % len(kayip))
 print("Sirada: python operasyonel_hafta.py")
