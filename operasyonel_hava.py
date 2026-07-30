@@ -57,7 +57,9 @@ MAX_BOSLUK = ayar("OM_MAX_BOSLUK", 7)       # bu kadar gunden uzun boslukta sogu
 # Ucretli uctaki gunluk ve saatlik sinir kalktigi icin tempo hizlandirilabilir.
 B = ayar("OM_BATCH", 100 if OM_APIKEY else 25)
 SLEEP = ayar("OM_SLEEP", 1 if OM_APIKEY else 13, float)
-TIMEOUT = ayar("OM_TIMEOUT", 60, float)
+# Ticari ucta yanit hizli gelir; asili kalan istegi erken birakip tekrar denemek
+# 60 saniye beklemekten ucuzdur.
+TIMEOUT = ayar("OM_TIMEOUT", 30 if OM_APIKEY else 60, float)
 DENEME = ayar("OM_TRIES", 6)
 MAX_KAYIP = ayar("OM_MAX_KAYIP", 0.10, float)
 BEKLE = [5, 15, 45, 90, 180]
@@ -170,6 +172,10 @@ def fetch(points, past_days, tempo):
             j = r.json()
         except Exception as e:
             raise Alinamadi("kalici hata: %s" % e)
+        # Ilk denemede temiz gecen her istek tempoyu tabana dogru geri ceker.
+        # Boylece tek bir aksaklik butun kosuyu kalici olarak yavaslatmaz.
+        if i == 0:
+            tempo = max(SLEEP, tempo * 0.8)
         return (j if isinstance(j, list) else [j]), tempo
     raise Alinamadi(son_hata or "bilinmeyen")
 
