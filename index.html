@@ -168,12 +168,19 @@ tr:{
   kYillarJump3:" arası). 2021 felaket yılında bile olay sayısı ortalama düzeyde; felaketi belirleyen, çıkan yangınların kaçının aşırı havada dev yangına dönüştüğüdür.",
 
   yOzet:"Yöntem Özeti",
-  yTezB:"Tez:", yTez:" Türkiye'de orman tutuşmasının birincil belirleyicisi kuraklık değil, ormana insan erişimidir. Kuraklık zemini hazırlar, kıvılcımı insan çakar.",
-  yVeriB:"Veri:", yVeri:" NASA FIRMS'in 225.856 ham uydu tespiti önce 53.593 yangına kümelendi; anız ve tarla yangınları ESA WorldCover ile ayıklanınca 3.397 orman yangını kaldı. İnsan baskısı WorldPop çevre nüfusundan, hava Open-Meteo'dan, yakıt arazi örtüsünden.",
-  yModelB:"Model:", yModel:" Varlık ile arka plan tasarımı; lojistik regresyon. On iki özellikli birleşik model yıllar arası test edildi: ortalama AUC 0.84, on yıl boyunca tutarlı.",
-  ySinirB:"Sınır:", ySinir:" Model tutuşma noktasını tahmin eder (önleme), yayılımı değil (OGM sahası). Harita son 10 yılın gerçek yangın yoğunluğunu gösterir; canlı tahmin operasyonel katmanda günlük hesaplanır.",
+  yGiris:"Türkiye genelinde orman yangını tutuşma riskini tahmin eden, tümüyle kamuya açık veriyle kurulmuş ve her sabah kendini yenileyen bir model. Aşağıda tezden veriye, modelden canlı operasyona yöntem özetlenir; sayısal kanıtın tamamı Veri & Kanıt sekmesindedir.",
+  yStat:[["3.397","orman yangını · 2016 ile 2025"],["12","model özelliği"],["0.84","AUC · yıllar arası"],["9.472","canlı orman hücresi"]],
+  yTezB:"Tez:", yTez:" Türkiye'de orman tutuşmasının birincil belirleyicisi kuraklık değil, ormana insan erişimidir. Kuraklık zemini hazırlar, kıvılcımı insan çakar. Yangın çıkan orman noktalarında çevre nüfus, çıkmayanlara göre yaklaşık altı buçuk kat yüksektir.",
+  yVeriB:"Veri:", yVeri:" NASA FIRMS'in 225.856 ham uydu tespiti önce 53.593 yangına kümelendi; anız ve tarla yangınları ESA WorldCover ile ayıklanınca 3.397 orman yangını kaldı. İnsan baskısı WorldPop çevre nüfusundan, hava Open-Meteo'dan, yakıt ve orman maskesi WorldCover'dan, tarım kenarı OpenStreetMap'ten gelir.",
+  yModelB:"Model:", yModel:" Varlık ile arka plan tasarımı üzerine lojistik regresyon; iki eksen birleşir: insan baskısı hangi yerin, hava hangi günün yanacağını söyler. On iki özellikli birleşik model yıllar arası test edildi (her seferinde bir yıl dışarıda): ortalama AUC 0.84, on yıl boyunca tutarlı, 2021 felaket yılında bile çökmeden.",
+  yDogrulamaB:"Doğrulama:", yDogrulama:" Motorun ürettiği yangın hava indeksleri (FWI), Avrupa'nın resmi sistemi EFFIS'in altındaki Copernicus/CEMS referansıyla bağımsız karşılaştırıldı (farklı hava kaynağı, farklı kurum). Beş bileşende havuzlanmış Spearman 0.81 ile 0.92; kuraklık kodunda nokta içi gün sırası uyumu 0.99; EFFIS tehlike sınıflarında bir sınıf toleransla yüzde 87 örtüşme.",
+  yOperasyonB:"Operasyon:", yOperasyon:" Sistem sunucusuz çalışır: GitHub Actions her sabah 07:00'de Open-Meteo'dan 7 günlük tahmini çeker, dondurulmuş modelle 9.472 orman hücresini skorlar ve paneli yeniler. Kuraklık kodları durum taşır ve sezon boyunca kesintisiz birikir; orman maskesi ESA WorldCover'dan kurulur.",
+  ySinirB:"Sınır:", ySinir:" Model tutuşma noktasını tahmin eder (önleme), başlamış yangının yayılımını değil; yayılım ayrı bir problem ve OGM'nin sahasıdır. Uzak tahmin günleri kesinlik değil eğilim taşır. Geçmiş Yangınlar haritası son 10 yılın gerçek yoğunluğunu, Bu Hafta canlı tahmini gösterir.",
+  yPipeBaslik:"Veri İşleme Hattı",
+  yPipe:[["225.856","ham uydu tespiti","VIIRS S-NPP · 2016 ile 2025 yazları"],["53.593","kümelenmiş yangın","zaman ve mekanda tek olaya indirgendi"],["3.397","orman yangını","anız ve tarla WorldCover ile ayıklandı"]],
+  yPipeNot:"Uydu tek bir yangını günlerce ve onlarca ayrı piksel olarak görür; ham tespitler kümelenip tek tek yangınlara indirgenir, sonra ormanda geçenler ayrılır. Nihai küme ham tespitlerin yaklaşık yüzde 1,5'i.",
   yKaynak:"Kaynaklar",
-  yKaynakSatir:[["NASA FIRMS","Uydu yangın tespitleri, VIIRS S-NPP. firms.modaps.eosdis.nasa.gov"],["ESA WorldCover","10m arazi örtüsü, orman filtresi ve yakıt. esa-worldcover.org"],["WorldPop","Türkiye nüfus dağılımı 2020. worldpop.org"],["Open-Meteo","Günlük geçmiş hava ve canlı tahmin. open-meteo.com"]],
+  yKaynakSatir:[["Uydu tespiti","NASA FIRMS","VIIRS S-NPP 375 m yangın tespiti. firms.modaps.eosdis.nasa.gov"],["Arazi örtüsü","ESA WorldCover","10 m örtü 2021; eğitim orman filtresi, yakıt ve operasyonel maske. esa-worldcover.org"],["Nüfus","WorldPop","Türkiye nüfus dağılımı 2020, 100 m çözünürlük. worldpop.org"],["Hava","Open-Meteo","Günlük geçmiş arşiv ve 7 günlük canlı tahmin. open-meteo.com"],["Coğrafi","OpenStreetMap","Tarım alanı (tarım kenarı) ve erişim analizi. openstreetmap.org"],["Doğrulama","Copernicus CEMS","EFFIS/ERA5 tabanlı FWI arşivi, bağımsız referans. effis.jrc.ec.europa.eu"]],
   yKaynakNot:"Tüm kaynaklar kamuya açık ve ücretsizdir. Model geliştirme aşamasındadır.",
   footer:(n,a,b)=>"Ulusal model · "+n+" orman yangını · "+a+" ile "+b+" · birleşik model AUC 0.84 · yıllar arası 0.84"
 },
@@ -269,12 +276,19 @@ en:{
   kYillarJump3:" per year). Even in the disaster year of 2021 the count was ordinary; what makes a disaster is how many of those fires turn into major ones under extreme weather.",
 
   yOzet:"Method Summary",
-  yTezB:"Thesis:", yTez:" In Türkiye the primary driver of forest ignition is not drought but human access to the forest. Drought prepares the ground; a person strikes the spark.",
-  yVeriB:"Data:", yVeri:" NASA FIRMS' 225,856 raw satellite detections were first clustered into 53,593 fires; once stubble and cropland fires were filtered out with ESA WorldCover, 3,397 forest fires remained. Human pressure comes from WorldPop neighbourhood population, weather from Open-Meteo, fuel from land cover.",
-  yModelB:"Model:", yModel:" A presence and background design with logistic regression. The twelve feature combined model was tested leave one year out: average AUC 0.84, consistent across all ten years.",
-  ySinirB:"Limit:", ySinir:" The model predicts the point of ignition (prevention), not the spread of a fire that has started (the forestry directorate's domain). The map shows the real fire density of the past 10 years; live forecasting is computed daily in the operational layer.",
+  yGiris:"A model that predicts forest fire ignition risk across Türkiye, built entirely on public data and refreshed every morning. Below is the method from thesis to data, model and live operation; the full numerical evidence sits in the Data & Evidence tab.",
+  yStat:[["3,397","forest fires · 2016 to 2025"],["12","model features"],["0.84","AUC · leave one year out"],["9,472","live forest cells"]],
+  yTezB:"Thesis:", yTez:" In Türkiye the primary driver of forest ignition is not drought but human access to the forest. Drought prepares the ground; a person strikes the spark. Around ignition points the neighbourhood population is roughly six and a half times higher than at points that never burned.",
+  yVeriB:"Data:", yVeri:" NASA FIRMS' 225,856 raw satellite detections were first clustered into 53,593 fires; once stubble and cropland fires were filtered out with ESA WorldCover, 3,397 forest fires remained. Human pressure comes from WorldPop neighbourhood population, weather from Open-Meteo, fuel and the forest mask from WorldCover, farm edge from OpenStreetMap.",
+  yModelB:"Model:", yModel:" A presence and background design over logistic regression, joining two axes: human pressure answers which place, weather answers which day will burn. The twelve feature combined model was tested leave one year out: average AUC 0.84, consistent across all ten years, holding even in the 2021 disaster year.",
+  yDogrulamaB:"Validation:", yDogrulama:" The fire weather indices (FWI) the engine computes were compared independently against the Copernicus/CEMS reference beneath Europe's official EFFIS system (different weather source, different institution). Pooled Spearman 0.81 to 0.92 across five components; within point day order agreement of 0.99 on the drought code; 87 percent overlap on EFFIS danger classes within one class.",
+  yOperasyonB:"Operation:", yOperasyon:" The system runs serverless: every morning at 07:00 GitHub Actions pulls the 7 day forecast from Open-Meteo, scores 9,472 forest cells with the frozen model and refreshes the panel. The drought codes are stateful and accumulate uninterrupted through the season; the forest mask is built from ESA WorldCover.",
+  ySinirB:"Limit:", ySinir:" The model predicts the point of ignition (prevention), not the spread of a fire that has started (the forestry directorate's domain). Distant forecast days carry a trend, not certainty. The Past Fires map shows the real density of the last 10 years, while This Week shows the live forecast.",
+  yPipeBaslik:"Data Processing Pipeline",
+  yPipe:[["225,856","raw satellite detections","VIIRS S-NPP · summers 2016 to 2025"],["53,593","clustered fires","reduced to single events in time and space"],["3,397","forest fires","stubble and cropland filtered with WorldCover"]],
+  yPipeNot:"A satellite sees a single fire as dozens of separate pixels over several days; raw detections are clustered into individual fires, then the ones over forest are separated. The final set is about 1.5 percent of the raw detections.",
   yKaynak:"Sources",
-  yKaynakSatir:[["NASA FIRMS","Satellite active fire detections, VIIRS S-NPP. firms.modaps.eosdis.nasa.gov"],["ESA WorldCover","10 m land cover, forest filter and fuel. esa-worldcover.org"],["WorldPop","Türkiye population distribution 2020. worldpop.org"],["Open-Meteo","Daily weather archive and live forecast. open-meteo.com"]],
+  yKaynakSatir:[["Satellite","NASA FIRMS","VIIRS S-NPP 375 m active fire detections. firms.modaps.eosdis.nasa.gov"],["Land cover","ESA WorldCover","10 m cover 2021; training forest filter, fuel and operational mask. esa-worldcover.org"],["Population","WorldPop","Türkiye population distribution 2020, 100 m. worldpop.org"],["Weather","Open-Meteo","Daily historical archive and 7 day live forecast. open-meteo.com"],["Geographic","OpenStreetMap","Farmland (farm edge) and access analysis. openstreetmap.org"],["Validation","Copernicus CEMS","EFFIS/ERA5 based FWI archive, independent reference. effis.jrc.ec.europa.eu"]],
   yKaynakNot:"Every source is public and free. The model is under development.",
   footer:(n,a,b)=>"National model · "+n+" forest fires · "+a+" to "+b+" · combined model AUC 0.84 · leave one year out 0.84"
 }};
@@ -881,16 +895,49 @@ function App(){
         <div style={S.tabBody}>
           <div style={S.card}>
             <div style={S.cardT}>{T.yOzet}</div>
-            <p style={S.p}><b style={{color:"#ffd86a"}}>{T.yTezB}</b>{T.yTez}</p>
-            <p style={S.p}><b style={{color:"#7cc8ff"}}>{T.yVeriB}</b>{T.yVeri}</p>
-            <p style={S.p}><b style={{color:"#5ba84f"}}>{T.yModelB}</b>{T.yModel}</p>
-            <p style={S.p}><b style={{color:"#e8932a"}}>{T.ySinirB}</b>{T.ySinir}</p>
+            <p style={S.cardHint}>{T.yGiris}</p>
+            <div className="ystat-row">
+              {T.yStat.map(([n,l])=>(
+                <div className="ystat" key={l}>
+                  <div className="ystat-n">{n}</div>
+                  <div className="ystat-l">{l}</div>
+                </div>
+              ))}
+            </div>
+            {[[T.yTezB,T.yTez,"#ffd86a"],[T.yVeriB,T.yVeri,"#7cc8ff"],
+              [T.yModelB,T.yModel,"#5ba84f"],[T.yDogrulamaB,T.yDogrulama,"#c9a0ff"],
+              [T.yOperasyonB,T.yOperasyon,"#e8932a"],[T.ySinirB,T.ySinir,"#e07a5f"]].map(([b,t,c])=>(
+              <p className="ypt" key={b} style={{borderLeftColor:c}}><b style={{color:c}}>{b}</b>{t}</p>
+            ))}
+          </div>
+          <div style={S.card}>
+            <div style={S.cardT}>{T.yPipeBaslik}</div>
+            <div className="pipe">
+              {T.yPipe.flatMap(([n,l,d],i)=>{
+                const col=i===0?"var(--ink-3)":i===1?"#e8932a":"#9fd98f";
+                const step=(
+                  <div className="pipe-step" key={l} style={i===2?{borderColor:"rgba(91,168,79,0.35)"}:null}>
+                    <div className="pipe-n" style={{color:col}}>{n}</div>
+                    <div className="pipe-l">{l}</div>
+                    <div className="pipe-d">{d}</div>
+                  </div>
+                );
+                return i===0?[step]:[<div className="pipe-ar" key={"ar"+i}>→</div>,step];
+              })}
+            </div>
+            <p style={{...S.p,margin:"14px 0 0"}}>{T.yPipeNot}</p>
           </div>
           <div style={S.card}>
             <div style={S.cardT}>{T.yKaynak}</div>
-            {T.yKaynakSatir.map(([n,d])=>(
-              <div key={n} style={S.srcRow}><span style={S.srcN}>{n}</span><span style={S.srcD}>{d}</span></div>
-            ))}
+            <div className="srcgrid">
+              {T.yKaynakSatir.map(([cat,n,d])=>(
+                <div className="srccard" key={n}>
+                  <div className="srccat">{cat}</div>
+                  <div className="srcname">{n}</div>
+                  <div className="srcdesc">{d}</div>
+                </div>
+              ))}
+            </div>
             <div style={S.srcNote}>{T.yKaynakNot}</div>
           </div>
         </div>
@@ -1017,6 +1064,26 @@ button{font-family:var(--ui);}
   border-color:var(--line) !important;}
 .leaflet-control-attribution{background:rgba(15,12,10,0.7) !important;color:var(--ink-3) !important;}
 .leaflet-control-attribution a{color:var(--ink-2) !important;}
+
+.ystat-row{display:flex;gap:10px;flex-wrap:wrap;margin:2px 0 20px;}
+.ystat{flex:1 1 110px;padding:14px 10px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-md);text-align:center;}
+.ystat-n{font-family:var(--display);font-size:clamp(22px,5.5vw,28px);font-weight:600;line-height:1;color:var(--ink);font-variant-numeric:tabular-nums;}
+.ystat-l{font-size:10.5px;color:var(--ink-3);margin-top:6px;line-height:1.35;letter-spacing:0.2px;}
+.ypt{padding-left:15px;border-left:2px solid var(--line);margin:0 0 15px;font-size:13.5px;line-height:1.7;color:var(--ink-2);}
+.ypt:last-child{margin-bottom:0;}
+.ypt b{font-weight:600;margin-right:3px;}
+.pipe{display:flex;align-items:stretch;gap:10px;flex-wrap:wrap;}
+.pipe-step{flex:1 1 150px;padding:16px 14px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-md);text-align:center;display:flex;flex-direction:column;gap:5px;justify-content:center;}
+.pipe-n{font-family:var(--display);font-size:clamp(23px,6vw,31px);font-weight:600;line-height:1;font-variant-numeric:tabular-nums;}
+.pipe-l{font-size:12.5px;color:var(--ink);font-weight:600;}
+.pipe-d{font-size:11px;color:var(--ink-3);line-height:1.45;}
+.pipe-ar{display:flex;align-items:center;justify-content:center;color:var(--ink-3);font-size:19px;flex:0 0 auto;}
+.srcgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px;}
+.srccard{padding:14px 15px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-md);}
+.srccat{font-size:9.5px;letter-spacing:1.3px;text-transform:uppercase;color:var(--ink-3);margin-bottom:7px;}
+.srcname{font-size:13.5px;font-weight:600;color:var(--ink);margin-bottom:5px;}
+.srcdesc{font-size:12px;color:var(--ink-2);line-height:1.55;}
+@media(max-width:560px){.pipe{flex-direction:column;}.pipe-ar{transform:rotate(90deg);height:14px;}}
 
 @media (prefers-reduced-motion:reduce){
   *{transition:none !important;animation:none !important;}
