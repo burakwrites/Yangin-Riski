@@ -13,6 +13,8 @@ Gunluk akis (GitHub Actions):
 
 Cikti iki dosya:
     data/skorlar.json   panel semasi (uretim, hafta, tarihler, yer, harita, top)
+                        harita satiri 15 alanlidir: konum, riskler, tepe gun,
+                        FWI kodlari ve tepe gunun ham hava degiskenleri
     skor_bu_hafta.json  ayrintili insan-okur cikti (arsiv / hata ayiklama)
 
 Skorlama saf aritmetik, sklearn gerekmez.
@@ -144,6 +146,11 @@ def yuvarla(x, n=1):
     return round(float(x), n) if x is not None else None
 
 
+def tamsayi(x):
+    """Nem ve gun sayaci gibi alanlar tam sayi yazilir; dosya boyutu kucuk kalir."""
+    return int(round(float(x))) if x is not None else None
+
+
 # ----------------------------------------------------------------------
 # skorlama
 # ----------------------------------------------------------------------
@@ -164,7 +171,11 @@ for reg in TAHM:
         if s is not None:
             gunluk.append({"date": f.get("date"), "risk": round(s, 4),
                            "ffmc": f.get("ffmc"), "dmc": f.get("dmc"),
-                           "dc": f.get("dc"), "isi": f.get("isi")})
+                           "dc": f.get("dc"), "isi": f.get("isi"),
+                           "tmax": f.get("tmax"), "humidity": f.get("humidity"),
+                           "wind": f.get("wind"),
+                           "days_since_rain": f.get("days_since_rain"),
+                           "precip_30d": f.get("precip_30d")})
     if not gunluk:
         continue
     tepe = max(gunluk, key=lambda x: x["risk"])
@@ -172,6 +183,10 @@ for reg in TAHM:
                 "risk_tepe": tepe["risk"], "tepe_gun": tepe["date"],
                 "tepe_fwi": {"ffmc": tepe["ffmc"], "dmc": tepe["dmc"],
                              "dc": tepe["dc"], "isi": tepe["isi"]},
+                "tepe_hava": {"tmax": tepe["tmax"], "humidity": tepe["humidity"],
+                              "wind": tepe["wind"],
+                              "days_since_rain": tepe["days_since_rain"],
+                              "precip_30d": tepe["precip_30d"]},
                 "risk_ort": round(sum(g["risk"] for g in gunluk) / len(gunluk), 4),
                 "gunluk": gunluk})
 
@@ -207,11 +222,19 @@ hafta = "%s ile %s" % (gun_tr(tarihler[0]), gun_tr(tarihler[-1])) if tarihler el
 yer_listesi = sorted({o["yer"] for o in out})
 yer_idx = {y: i for i, y in enumerate(yer_listesi)}
 
-# harita satiri: [lat, lon, tepe_risk, yer_indeksi, ort_risk, tepe_gun, ffmc, dmc, dc, isi]
+# harita satiri (15 alan):
+#   0 lat          1 lon           2 tepe_risk     3 yer_indeksi   4 ort_risk
+#   5 tepe_gun     6 ffmc          7 dmc           8 dc            9 isi
+#  10 tmax (C)    11 nem (%)      12 ruzgar (km/sa)
+#  13 yagissiz_gun            14 son 30 gun yagis (mm)
+# 10'dan sonraki alanlar tepe gune aittir, tipki FWI kodlari gibi.
 harita = [[round(o["lat"], 3), round(o["lon"], 3), round(o["risk_tepe"], 3),
            yer_idx[o["yer"]], round(o["risk_ort"], 3), o["tepe_gun"],
            yuvarla(o["tepe_fwi"]["ffmc"]), yuvarla(o["tepe_fwi"]["dmc"]),
-           yuvarla(o["tepe_fwi"]["dc"]), yuvarla(o["tepe_fwi"]["isi"])] for o in out]
+           yuvarla(o["tepe_fwi"]["dc"]), yuvarla(o["tepe_fwi"]["isi"]),
+           yuvarla(o["tepe_hava"]["tmax"]), tamsayi(o["tepe_hava"]["humidity"]),
+           yuvarla(o["tepe_hava"]["wind"]), tamsayi(o["tepe_hava"]["days_since_rain"]),
+           yuvarla(o["tepe_hava"]["precip_30d"])] for o in out]
 
 # top listesi: gunluk seyir tarih sirasinda, eksik gun 0 ile doldurulur
 top = []

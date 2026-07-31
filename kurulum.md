@@ -39,7 +39,7 @@ Zaman aşımı, bağlantı hatası, 429 ve 5xx kademeli beklemeyle tekrar deneni
 
 Çıktısı `operasyonel_tahmin.json`, şeması değişmedi.
 
-operasyonel_hafta.py: yeni sürüm iki dosya yazar. `data/skorlar.json` panelin okuduğu dosyadır ve şu alanları taşır: `uretim` (koşu anının Türkiye saatiyle ISO damgası), `hafta` (gün aralığı metni), `tarihler` (7 gün), `yer` (il ve ilçe etiketleri listesi), `harita` (hücre başına `[lat, lon, tepe_risk, yer_indeksi, ortalama_risk, tepe_gün, ffmc, dmc, dc, isi]`), `top` (en riskli 30 hücre, yedi günlük seyriyle). `skor_bu_hafta.json` ise ayrıntılı insan okur çıktı olarak korunur, hata ayıklama ve arşiv içindir. Boyut yaklaşık 330 KB.
+operasyonel_hafta.py: yeni sürüm iki dosya yazar. `data/skorlar.json` panelin okuduğu dosyadır ve şu alanları taşır: `uretim` (koşu anının Türkiye saatiyle ISO damgası), `hafta` (gün aralığı metni), `tarihler` (7 gün), `yer` (il ve ilçe etiketleri listesi), `harita` (hücre başına 15 alan: `[lat, lon, tepe_risk, yer_indeksi, ortalama_risk, tepe_gün, ffmc, dmc, dc, isi, tmax, nem, rüzgar, yağışsız_gün, yağış_30g]`; son beşi tepe günün ham hava değişkenleridir), `top` (en riskli 30 hücre, yedi günlük seyriyle). `skor_bu_hafta.json` ise ayrıntılı insan okur çıktı olarak korunur, hata ayıklama ve arşiv içindir. Boyut yaklaşık 330 KB.
 
 `noktalar_idari.json` bulunamazsa betik durmaz, yer etiketlerini koordinat olarak yazar ve konsola uyarı basar. Dosya varsa hem liste (`il` ve `ilce` alanlı kayıtlar) hem sözlük (`"lat,lon" : "İl / İlçe"`) biçimini tanır, eşleştirmeyi üç haneye yuvarlanmış koordinat üzerinden yapar.
 
