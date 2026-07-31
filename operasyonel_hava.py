@@ -19,6 +19,9 @@ Modlar:
         Bu kosu pahalidir (yaklasik 25.100 agirlikli cagri), bir kez ve
         tercihen kendi bilgisayarinda calistirilmalidir.
   OM_SOGUK=1 ile soguk baslangic elle zorlanabilir.
+  Izgaraya yeni nokta eklenirse eskiler ILIK kalir, yalnizca yeniler 60 gunluk
+  pencereyle isinir (kismi isinma). Eksik oran OM_KISMI_UST'u (varsayilan 0,50)
+  asarsa tam soguk baslangica dusulur.
 
 Calistir:  python operasyonel_hava.py
 Cikti:     operasyonel_tahmin.json   (operasyonel_hafta.py'ye girdi, semasi degismedi)
@@ -55,6 +58,7 @@ FCST_DAYS = 7
 ILIK_GECMIS = ayar("OM_PAST_DAYS", 7)       # gunluk kosuda gecmis pencere
 SOGUK_GECMIS = ayar("OM_ISINMA", 60)        # tam isinmada gecmis pencere
 MAX_BOSLUK = ayar("OM_MAX_BOSLUK", 7)       # bu kadar gunden uzun boslukta soguk baslangic
+KISMI_UST = ayar("OM_KISMI_UST", 0.50, float)  # bu orandan cok nokta eksikse tam soguk baslangic
 # Ucretli uctaki gunluk ve saatlik sinir kalktigi icin tempo hizlandirilabilir.
 B = ayar("OM_BATCH", 100 if OM_APIKEY else 25)
 SLEEP = ayar("OM_SLEEP", 1 if OM_APIKEY else 13, float)
@@ -261,14 +265,28 @@ if DURUM_H and son_tarih and not soguk:
     eksik = sum(1 for p in PTS if p[0] not in DURUM_H)
     if bosluk > MAX_BOSLUK:
         soguk, sebep = True, "son durum %d gun eski (esik %d)" % (bosluk, MAX_BOSLUK)
-    elif eksik > len(PTS) * 0.02:
-        soguk, sebep = True, "%d nokta durumda yok" % eksik
+    elif eksik > len(PTS) * KISMI_UST:
+        # Noktalarin cogu durumda yoksa kismi isinmanin anlami kalmiyor,
+        # dogrudan tam soguk baslangic daha ucuz ve daha basit.
+        soguk, sebep = True, "%d nokta durumda yok (yarisindan cok)" % eksik
 
-PAST = SOGUK_GECMIS if soguk else ILIK_GECMIS
-agirlik = len(PTS) * (max(PAST + FCST_DAYS, 14) / 14.0)
+# Izgaraya yeni nokta eklendiginde eskiler sicak kalir, yalnizca yeniler isinir.
+# Boylece orman maskesi genisletildiginde mevcut 5.254 hucrenin DC birikimi
+# sifirlanmaz; sadece yeni hucreler 60 gunluk pencereyle devreye girer.
+if soguk:
+    GRUPLAR = [("ISINMA", SOGUK_GECMIS, list(PTS))]
+else:
+    _ilik = [p for p in PTS if p[0] in DURUM_H]
+    _yeni = [p for p in PTS if p[0] not in DURUM_H]
+    GRUPLAR = [("ILIK", ILIK_GECMIS, _ilik)]
+    if _yeni:
+        GRUPLAR.append(("YENI NOKTA ISINMASI", SOGUK_GECMIS, _yeni))
+
+agirlik = sum(len(g[2]) * (max(g[1] + FCST_DAYS, 14) / 14.0) for g in GRUPLAR)
 print("Mod: %s (%s)" % ("SOGUK BASLANGIC" if soguk else "ILIK",
                         sebep if soguk else "son durum: %s" % son_tarih))
-print("Istek penceresi: %d gecmis + %d tahmin" % (PAST, FCST_DAYS))
+for ad, gec, pts in GRUPLAR:
+    print("  %-22s %5d nokta, pencere %d gecmis + %d tahmin" % (ad, len(pts), gec, FCST_DAYS))
 if OM_APIKEY:
     print("Uc: musteri (ticari plan, anahtar ...%s)" % OM_APIKEY[-4:])
     print("Tahmini agirlikli cagri: %.0f (aylik butce 1.000.000; her gun bu pencereyle ~%.0f/ay)"
@@ -288,8 +306,9 @@ if os.path.exists(CIKTI):
     except Exception:
         results, done = [], set()
 
-kalan = [p for p in PTS if p[0] not in done]
-print("Cekilecek: %d\n" % len(kalan))
+ISLER = [(ad, gec, [p for p in pts if p[0] not in done]) for ad, gec, pts in GRUPLAR]
+ISLER = [x for x in ISLER if x[2]]
+print("Cekilecek: %d\n" % sum(len(x[2]) for x in ISLER))
 
 t0 = time.time()
 tempo = SLEEP
@@ -297,33 +316,41 @@ kayip = []
 yeni_durum = {} if soguk else dict(DURUM_H)
 yeni_son_tarih = None
 
-for bi, k in enumerate(range(0, len(kalan), B)):
-    batch = kalan[k:k + B]
-    try:
-        locs, tempo = fetch(batch, PAST, tempo)
-    except Alinamadi as e:
-        kayip.extend(p[0] for p in batch)
-        print("  ATLANDI: %d nokta alinamadi (%s)" % (len(batch), e))
-        time.sleep(tempo)
-        continue
-    for (name, lat, lon), loc in zip(batch, locs):
+bi = 0
+bitti = 0
+toplam_kalan = sum(len(x[2]) for x in ISLER)
+for grup_ad, GEC, kalan in ISLER:
+    print("\n-- %s: %d nokta, pencere %d gun --" % (grup_ad, len(kalan), GEC))
+    for k in range(0, len(kalan), B):
+        batch = kalan[k:k + B]
         try:
-            gunler = satirlar(loc["daily"])
-            kayitlar, dur, st = nokta_isle(gunler, None if soguk else DURUM_H.get(name), son_tarih)
-        except Exception as e:
-            kayip.append(name)
-            print("  ATLANDI: %s hesaplanamadi (%s)" % (name, e))
+            locs, tempo = fetch(batch, GEC, tempo)
+        except Alinamadi as e:
+            kayip.extend(p[0] for p in batch)
+            bitti += len(batch)
+            print("  ATLANDI: %d nokta alinamadi (%s)" % (len(batch), e))
+            time.sleep(tempo)
             continue
-        results.append({"name": name, "lat": lat, "lon": lon, "forecast": kayitlar})
-        yeni_durum[name] = dur
-        yeni_son_tarih = st
-    y = k + len(batch)
-    hiz = y / max(1, time.time() - t0)
-    print("  %d/%d  (~%.0f dk, kayip %d)"
-          % (len(done) + y, len(PTS), (len(kalan) - y) / max(0.1, hiz) / 60, len(kayip)))
-    if (bi + 1) % 10 == 0:
-        json.dump(results, open(CIKTI, "w", encoding="utf-8"), ensure_ascii=False)
-    time.sleep(tempo)
+        for (name, lat, lon), loc in zip(batch, locs):
+            try:
+                gunler = satirlar(loc["daily"])
+                # Durumda olmayan nokta (yeni hucre) None alir ve tum pencereyle isinir.
+                kayitlar, dur, st = nokta_isle(gunler, None if soguk else DURUM_H.get(name), son_tarih)
+            except Exception as e:
+                kayip.append(name)
+                print("  ATLANDI: %s hesaplanamadi (%s)" % (name, e))
+                continue
+            results.append({"name": name, "lat": lat, "lon": lon, "forecast": kayitlar})
+            yeni_durum[name] = dur
+            yeni_son_tarih = st
+        bi += 1
+        bitti += len(batch)
+        hiz = bitti / max(1, time.time() - t0)
+        print("  %d/%d  (~%.0f dk, kayip %d)"
+              % (len(done) + bitti, len(PTS), (toplam_kalan - bitti) / max(0.1, hiz) / 60, len(kayip)))
+        if bi % 10 == 0:
+            json.dump(results, open(CIKTI, "w", encoding="utf-8"), ensure_ascii=False)
+        time.sleep(tempo)
 
 json.dump(results, open(CIKTI, "w", encoding="utf-8"), ensure_ascii=False)
 oran = len(kayip) / max(1, len(PTS))

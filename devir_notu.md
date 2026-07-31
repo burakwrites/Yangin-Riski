@@ -1,11 +1,13 @@
 # YangınRiski.com devir notu
-Hazırlanma tarihi: 30 Temmuz 2026
+Son güncelleme: 31 Temmuz 2026
 
-Bu dosya bir sonraki sohbete yüklenmek için hazırlandı. Projenin bulunduğu nokta, biten işler, açık işler ve tekrar eden sorunlar burada.
+Projenin bulunduğu nokta, biten işler, açık işler ve tekrar eden sorunlar burada. Bozulmaması gereken kurallar ve dosya haritası için `CLAUDE.md` dosyasına bakınız.
 
 ## Kısaca durum
 
-Otomasyon kuruldu ve çalışıyor. GitHub Actions her sabah 07:00'de dönüyor, skorları üretiyor, bot repoya commit ediyor, panel GitHub Pages üzerinden yayında. Open-Meteo ticari planı alındı. CEMS doğrulaması tamamlandı ve yöntem dokümanına işlendi.
+Otomasyon kuruldu ve çalışıyor. GitHub Actions her sabah 07:00'de dönüyor, skorları üretiyor, bot repoya commit ediyor, panel GitHub Pages üzerinden yayında. Open-Meteo ticari planı alındı. CEMS doğrulaması tamamlandı ve yöntem dokümanına işlendi. Panel 31 Temmuz'da elden geçirildi: iki dilli oldu, görsel dil sadeleşti, bayat sayılar düzeltildi.
+
+Sıradaki tek iş operasyonel orman maskesinin OSM'den ESA WorldCover'a taşınmasıdır; görev tanımı `gorev_worldcover_maskesi.md` dosyasında.
 
 Repo: `burakwrites/Yangin-Riski` (public)
 Panel: https://burakwrites.github.io/Yangin-Riski/
@@ -31,7 +33,9 @@ Panel: https://burakwrites.github.io/Yangin-Riski/
 
 **Neden 7 geçmiş gün.** Ağırlık formülünde gün sayısının asgarisi 14, yani geçmiş 7 gün bedavaya geliyor. Karşılığında koşu birkaç gün patlarsa eksik günler kendiliğinden kapanıyor.
 
-**Otomatik soğuk başlangıç.** Boşluk 7 günü aşarsa, durum dosyası bozulursa ya da ızgaraya yeni nokta eklenirse betik 60 günlük ısınmaya düşer. `OM_SOGUK=1` ile elle zorlanabilir. Soğuk başlangıç bir kerelik yaklaşık 25.100 çağrı harcar, tercihen yerelde koşturulur.
+**Kısmi ısınma.** Izgaraya yeni nokta eklendiğinde eski hücreler ILIK kalır ve yalnızca yeni hücreler 60 günlük pencereyle ısınır; böylece maske genişletilirken mevcut hücrelerin DC birikimi sıfırlanmaz. Eksik oran `OM_KISMI_UST` değerini (varsayılan 0,50) aşarsa tam soğuk başlangıca düşülür.
+
+**Otomatik soğuk başlangıç.** Boşluk 7 günü aşarsa ya da durum dosyası bozulursa betik 60 günlük ısınmaya düşer. `OM_SOGUK=1` ile elle zorlanabilir. Soğuk başlangıç bir kerelik yaklaşık 25.100 çağrı harcar, tercihen yerelde koşturulur.
 
 **Yağışsız gün sayacı 67'de sabit.** Durum taşıyınca sayaç sınırsız büyüyebilirdi ve model eğitim dağılımının dışına çıkardı. Eski 67 günlük pencerenin doğal sınırı korundu.
 
@@ -68,15 +72,39 @@ Panel: https://burakwrites.github.io/Yangin-Riski/
 
 ## Ayarlanabilir ortam değişkenleri
 
-`OM_APIKEY`, `OM_BATCH`, `OM_SLEEP`, `OM_TIMEOUT` (varsayılan 60), `OM_TRIES`, `OM_MAX_KAYIP`, `OM_PAST_DAYS`, `OM_ISINMA`, `OM_MAX_BOSLUK`, `OM_SOGUK`
+`OM_APIKEY`, `OM_BATCH`, `OM_SLEEP`, `OM_TIMEOUT` (varsayılan 60), `OM_TRIES`, `OM_MAX_KAYIP`, `OM_PAST_DAYS`, `OM_ISINMA`, `OM_MAX_BOSLUK`, `OM_KISMI_UST` (varsayılan 0,50), `OM_SOGUK`
+
+## 31 Temmuz 2026'da yapılanlar
+
+**Panel iki dilli oldu.** Bütün metinler `const METIN={tr,en}` sözlüğünde toplandı, koda `T.anahtar` diye giriyor. Başlıkta TR ve EN bayraklı düğme var, dil adres satırında `?lang=en` ile taşınıyor, yani İngilizce bağlantı paylaşılabiliyor. Yeni metin eklerken iki dile birden eklemek gerek.
+
+**Görsel dil sadeleştirildi.** Renk veriye ayrıldı: doygun renk yalnızca haritada, risk çubuklarında ve lejantta kaldı, arayüz kontrolleri nötr krem oldu. Arayüz yazı tipi sans oldu, serif yalnızca marka ve kart başlıklarında. Mobilde zaman şeridinin taştığı hata giderildi (şerit iki satıra ayrıldı, altına on yılın tik işaretleri eklendi). Sekmeler mobilde yatay kayan şeride dönüştü. Başlık şeridi sabitlendi. Favicon ve logo piksel alev ikonuna geçti, base64 olarak dosyaya gömülü, ayrı dosya yok.
+
+**Bayat sayılar düzeltildi.** Yıllar arası AUC iki yerde 0.86 yazıyordu; doğrusu temel sürümde 0.83, birleşik modelde 0.84. Yöntem Özeti'nde orman olayı sayısı 2.702 yazıyordu, doğrusu 3.397. İki eksen kartındaki 0.83'ün "tam model" değil "iki eksen" olduğu netleştirildi, güncel birleşik modelin 0.84'ü ayrıca yazıldı.
+
+**Terminoloji kuralı yerleşti.** Sayılan nesne yangın, modellenen olgu tutuşma. Sekme adı "Geçmiş Yangınlar" oldu; tutuşma kelimesi marka satırından ve sayfa başlığından da çıktı, yalnızca Yöntem Özeti'ndeki tez ve sınır cümlelerinde kaldı.
+
+**FWI kartı eklendi.** Sistemin yapısı (girdi, üç nem kodu ve kuruma hızları, ISI, BUI, FWI bileşim kuralları), Van Wagner ve Pickett 1985 kaynağı, EFFIS ve Copernicus'un aynı sistemi kullandığı, bir de dürüst not: FWI ham değişkenlerin yerine konduğunda modeli geçmemişti.
+
+**Bu Hafta popup'ına ham hava eklendi.** `data/skorlar.json` harita satırı 10 alandan 15'e çıktı, tepe günün sıcaklık, nem, rüzgar, yağışsız gün ve 30 günlük yağış değerleri taşınıyor. Ek boyut yaklaşık 100 KB.
+
+**Panelde hata göstericisi var.** Harita katmanlarındaki bir hata eskiden bütün React ağacını düşürüyor ve siyah ekran bırakıyordu. Katmanlar yalıtıldı; ayrıca panel açılamazsa siyah ekran yerine hatanın metni yazılıyor.
 
 ## Açık işler
 
-1. **Yöntem dokümanına durum taşıyan mimariyi işlemek.** Bölüm 10'daki DC notu ve bölüm 11 güncellenmeli. Önemli nokta: DC artık kesintisiz biriktiği için CEMS doğrulamasında bulunan 63 puanlık sistematik aşağı kayma iki üç ay içinde kendiliğinden kapanacak. Panelin mutlak sayıları bu süreçte bir miktar yükselecek, sıralama etkilenmiyor. Dokümanın sonuna o günün tarihiyle yeni bir "Son güncelleme" satırı eklenmeli.
-2. **Birkaç gün koşuyu izlemek.** Süre, kayıp oranı ve durum dosyasının boyut seyri.
-3. **Belediye pilotu.** Sahada isabet doğrulaması ve ilk gelir. Bot her gün skorları commit ettiği için hindcast arşivi kendiliğinden birikiyor.
-4. **Yangın yayılım modülü.** Ayrı ürün, OGM iş birliği.
-5. **İsteğe bağlı.** yanginriski.com alan adının Pages'e bağlanması, repoya README, durum dosyasının küçültülmesi (yağışların tam sayı olarak saklanması).
+1. **Operasyonel orman maskesini WorldCover'a taşımak.** Sıradaki iş. Ayrıntılı görev tanımı `gorev_worldcover_maskesi.md` dosyasında.
+2. **Birkaç gün koşuyu izlemek.** Süre (5 ile 10 dakika beklenir), kayıp oranı ve durum dosyasının boyut seyri. Tempo düzeltmesinin tuttuğunu görmek için log'da tempo değerinin 1 saniyede kalıp kalmadığına bakılmalı.
+3. **DC yakınsamasını ölçmek.** DC kesintisiz biriktiğine göre CEMS'e karşı ölçülen sistematik kaymanın iki üç ay içinde kapanması bekleniyor. Sezon sonunda aynı karşılaştırma tekrarlanıp sonuç yöntem dokümanının 7.10 bölümüne işlenmeli.
+4. **Belediye pilotu.** Sahada isabet doğrulaması ve ilk gelir. Bot her gün skorları commit ettiği için hindcast arşivi kendiliğinden birikiyor.
+5. **Mesire ve orman parkı noktalarını skorlamak.** Izgarayı sıklaştırmak yerine önerilen yol. Belediyeye satılan bilgi ızgara noktası değil, hafta sonu insan giden piknik alanı. Ulusal ölçekte birkaç bin nokta eder.
+6. **Yangın yayılım modülü.** Ayrı ürün, OGM iş birliği.
+7. **İsteğe bağlı.** yanginriski.com alan adının Pages'e bağlanması, repoya README, durum dosyasının küçültülmesi.
+
+## Izgara hakkında bilinenler
+
+Aralık 0,05 derece. Türkiye enlemlerinde kuzey güney 5,6 km, doğu batı 4,1 ile 4,5 km; hücre yaklaşık 24 kilometrekare.
+
+Izgarayı sıklaştırmak değerlendirildi ve **önerilmedi**. Sebep maliyet değil, kazancın olmaması: Open-Meteo yüksek çözünürlüklü 1 ile 2 km'lik bölgesel modelleri Türkiye'de kullanmıyor, bize gelen hava alanı 7 ile 11 km bandında. Yani ızgara zaten hava verisinden daha sıkı; sıklaştırmak zamansal eksene sıfır bilgi ekler. Mekansal eksende (nüfus) kazanç var ama 2 km yarıçaplı toplama yüzünden hızla azalıyor. Asıl kayıp çözünürlük değil kapsama, o yüzden sıradaki iş maske.
 
 ## Çalışma notları
 
