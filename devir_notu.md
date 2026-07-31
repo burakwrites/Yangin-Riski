@@ -13,6 +13,7 @@ Panel: https://burakwrites.github.io/Yangin-Riski/
 ## Repo yapısı
 
     .github/workflows/gunluk_skor.yml    günlük koşu (cron 04:00 UTC = 07:00 TR)
+                                         actions/checkout@v7, actions/setup-python@v6 (Node 24)
     operasyonel_hava.py                  Open-Meteo çekimi + FWI, durum taşıyan sürüm
     operasyonel_hafta.py                 skorlama, data/skorlar.json yazar
     fwi.py                               FWI motoru (Van Wagner)
@@ -53,17 +54,21 @@ Panel: https://burakwrites.github.io/Yangin-Riski/
 
 **ReadTimeout ile koşu düşüyordu.** Betikte yalnızca 429 yakalanıyordu. Zaman aşımı, bağlantı hatası ve 5xx de kademeli beklemeyle tekrar denenecek şekilde eklendi.
 
-**Tempo bir kere yavaşlayınca geri hızlanmıyordu.** Adaptif bekleme yalnızca yukarı yönlüydü; tek bir aksaklık bütün koşuyu kalıcı yavaşlatıyordu. Artık ilk denemede temiz geçen istek tempoyu yüzde 20 aşağı çekiyor, taban değerin altına inmiyor.
+**Tempo bir kere yavaşlayınca geri hızlanmıyordu.** Adaptif bekleme yalnızca yukarı yönlüydü; tek bir aksaklık bütün koşuyu kalıcı yavaşlatıyordu. İlk düzeltmede temiz geçen istek tempoyu yüzde 20 aşağı çekmeye başladı, ama bu yetmedi (aşağıya bakınız).
+
+**Zaman aşımı tempoyu yükseltmemeli.** 31 Temmuz koşusu 52 dakika sürdü. Log'da anahtar görünüyordu, öbek 100 ve tempo 1 saniyeydi; sorun ReadTimeout'lardı. Her zaman aşımı öbekler arası tempoyu 1,5 katına çıkarıyor, buna karşılık her başarılı istek yalnızca yüzde 20 geri çekiyordu. Bir öbek üç kez düşünce tempo 3,4 katına çıkıyor, arada bir iki başarılı istek bunu kapatamıyordu; tempo tavana (45 saniye) tırmanıp orada kilitleniyordu. Kalan otuz küsur öbek yalnızca beklemeyle yarım saat harcadı. Mantık hatası şuydu: kademeli yavaşlama kota (429) için tasarlanmıştı, oysa zaman aşımı kota işareti değil ağ ya da sunucu yavaşlığıdır ve beklemek onu çözmez. Artık tempoyu yalnızca 429 yükseltiyor; zaman aşımında yalnızca o istek için kademeli bekleniyor. Temiz geçen istek de tempoyu yüzde 20 değil yarı yarıya geri çekiyor. Aynı hata deseniyle yapılan hesapta koşu 35 dakikadan 9 dakikaya iniyor.
+
+**Ticari uçta zaman aşımı 30 saniye dardı.** 100 noktalık istekler zaman zaman daha uzun sürüyor; erken bırakılan istek hem boşa gidiyor hem tekrar denemeyi getiriyordu. Varsayılan 60 saniyeye çıkarıldı. Zaman aşımı yine de sürerse `OM_BATCH: "50"` ile öbek küçültülebilir, toplam maliyet değişmez.
 
 **Actions log'u boş görünüyordu.** Python çıktısı tamponluyordu. Workflow'a `PYTHONUNBUFFERED: "1"` eklendi.
 
-**Ücretli planda da beklenen hız gelmedi.** Darboğaz kota değil ağ turu. Gerçekçi koşu süresi 8 ile 15 dakika. Zaman aşımı sürerse workflow'daki hava adımının env bloğuna `OM_BATCH: "50"` eklenebilir, toplam maliyet değişmez.
+**Ücretli planda da beklenen hız gelmedi.** Darboğaz kota değil ağ turu. Yukarıdaki iki düzeltmeden sonra beklenen koşu süresi 5 ile 10 dakika.
 
 **Panel yerelden açılınca Bu Hafta sekmesi hata veriyor.** `fetch` dosya protokolünde engelleniyor. Yerel deneme için repo kökünde `python3 -m http.server 8000`.
 
 ## Ayarlanabilir ortam değişkenleri
 
-`OM_APIKEY`, `OM_BATCH`, `OM_SLEEP`, `OM_TIMEOUT`, `OM_TRIES`, `OM_MAX_KAYIP`, `OM_PAST_DAYS`, `OM_ISINMA`, `OM_MAX_BOSLUK`, `OM_SOGUK`
+`OM_APIKEY`, `OM_BATCH`, `OM_SLEEP`, `OM_TIMEOUT` (varsayılan 60), `OM_TRIES`, `OM_MAX_KAYIP`, `OM_PAST_DAYS`, `OM_ISINMA`, `OM_MAX_BOSLUK`, `OM_SOGUK`
 
 ## Açık işler
 

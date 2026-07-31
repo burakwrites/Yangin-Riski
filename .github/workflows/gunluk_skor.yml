@@ -18,11 +18,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
+      # Node 24 uyumlu surumler; v4/v5 Node 20 hedefledigi icin uyari veriyordu.
       - name: Depoyu al
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Python kur
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 

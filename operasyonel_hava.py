@@ -25,7 +25,8 @@ Cikti:     operasyonel_tahmin.json   (operasyonel_hafta.py'ye girdi, semasi degi
            data/fwi_durum.json       (ertesi gunun baslangic durumu)
 
 Dayaniklilik: zaman asimi, baglanti hatasi, 429 ve 5xx kademeli beklemeyle
-tekrar denenir; bir batch yine de alinamazsa o noktalar atlanir ve durumlari
+tekrar denenir. Obekler arasi tempoyu yalnizca 429 (kota) yukseltir; zaman asimi
+yukseltmez, cunku beklemek zaman asimini cozmez, sadece kosuyu uzatir. bir batch yine de alinamazsa o noktalar atlanir ve durumlari
 dokunulmadan kalir (ertesi gun bosluk kapanir). Kayip esigi asilirsa betik
 hata koduyla durur, panel son basarili gunun dosyasinda kalir.
 """
@@ -57,9 +58,10 @@ MAX_BOSLUK = ayar("OM_MAX_BOSLUK", 7)       # bu kadar gunden uzun boslukta sogu
 # Ucretli uctaki gunluk ve saatlik sinir kalktigi icin tempo hizlandirilabilir.
 B = ayar("OM_BATCH", 100 if OM_APIKEY else 25)
 SLEEP = ayar("OM_SLEEP", 1 if OM_APIKEY else 13, float)
-# Ticari ucta yanit hizli gelir; asili kalan istegi erken birakip tekrar denemek
-# 60 saniye beklemekten ucuzdur.
-TIMEOUT = ayar("OM_TIMEOUT", 30 if OM_APIKEY else 60, float)
+# 30 saniye ticari ucta fazla dardi: 100 noktalik istekler zaman zaman daha uzun
+# suruyor, erken birakilan istek hem bosa gidiyor hem tekrar denemeyi getiriyordu.
+# Istek yine de uzarsa OM_BATCH=50 ile obek kucultulebilir, toplam maliyet degismez.
+TIMEOUT = ayar("OM_TIMEOUT", 60, float)
 DENEME = ayar("OM_TRIES", 6)
 MAX_KAYIP = ayar("OM_MAX_KAYIP", 0.10, float)
 BEKLE = [5, 15, 45, 90, 180]
@@ -150,10 +152,14 @@ def fetch(points, past_days, tempo):
         try:
             r = requests.get(FORECAST_URL, params=params, timeout=TIMEOUT)
         except GECICI_HATALAR as e:
+            # Zaman asimi bir kota isareti degil, ag ya da sunucu yavasligidir.
+            # Bu yuzden yalnizca bu istek icin kademeli beklenir; obekler arasi
+            # genel tempo YUKSELTILMEZ. (Eskiden yukseltiliyordu ve tek bir
+            # yavas sabah butun kosuyu 45 saniyelik tempoda kilitliyordu.)
             son_hata = "zaman asimi / baglanti (%s)" % type(e).__name__
-            tempo = min(tempo * 1.5, SLEEP_UST)
             w = bekleme(i)
-            print("    %s; %d sn bekle (deneme %d/%d, tempo %.0f sn)" % (son_hata, w, i + 1, DENEME, tempo))
+            print("    %s; %d sn bekle (deneme %d/%d, tempo %.0f sn, degismedi)"
+                  % (son_hata, w, i + 1, DENEME, tempo))
             time.sleep(w); continue
         if r.status_code == 429:
             ra = r.headers.get("Retry-After", "")
@@ -173,9 +179,9 @@ def fetch(points, past_days, tempo):
         except Exception as e:
             raise Alinamadi("kalici hata: %s" % e)
         # Ilk denemede temiz gecen her istek tempoyu tabana dogru geri ceker.
-        # Boylece tek bir aksaklik butun kosuyu kalici olarak yavaslatmaz.
+        # Yarilayarak: 429 sonrasi yukselen tempo birkac basarili istekte tabana doner.
         if i == 0:
-            tempo = max(SLEEP, tempo * 0.8)
+            tempo = max(SLEEP, tempo * 0.5)
         return (j if isinstance(j, list) else [j]), tempo
     raise Alinamadi(son_hata or "bilinmeyen")
 
