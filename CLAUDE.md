@@ -27,7 +27,7 @@ Canlı panel: https://burakwrites.github.io/Yangin-Riski/
     operasyonel_hafta.py               skorlama, data/skorlar.json yazar
     fwi.py                             FWI motoru (Van Wagner denklemleri)
     model_v3.json                      dondurulmuş model, 12 özellik
-    noktalar_baz_grid.json             ulusal ızgara, 5.254 hücre + statik özellikler
+    noktalar_baz_grid.json             ulusal ızgara, 9.472 hücre (ESA WorldCover maskesi) + statik özellikler
     noktalar_idari.json                hücre başına il ve ilçe etiketi
     index.html                         panel (tek dosya, React + Leaflet + Babel)
     data/skorlar.json                  panelin okuduğu günlük skor (bot yazar)

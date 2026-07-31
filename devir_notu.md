@@ -7,7 +7,7 @@ Projenin bulunduğu nokta, biten işler, açık işler ve tekrar eden sorunlar b
 
 Otomasyon kuruldu ve çalışıyor. GitHub Actions her sabah 07:00'de dönüyor, skorları üretiyor, bot repoya commit ediyor, panel GitHub Pages üzerinden yayında. Open-Meteo ticari planı alındı. CEMS doğrulaması tamamlandı ve yöntem dokümanına işlendi. Panel 31 Temmuz'da elden geçirildi: iki dilli oldu, görsel dil sadeleşti, bayat sayılar düzeltildi.
 
-Sıradaki tek iş operasyonel orman maskesinin OSM'den ESA WorldCover'a taşınmasıdır; görev tanımı `gorev_worldcover_maskesi.md` dosyasında.
+Operasyonel orman maskesi 31 Temmuz'da OpenStreetMap'ten ESA WorldCover'a taşındı: ızgara 5.254'ten 9.472 hücreye çıktı (eski hücreler ad, nüfus ve kuraklık birikimiyle birebir korundu, WorldCover'ın orman gördüğü 4.218 yeni hücre eklendi), durum dosyası kısmi ısınmayla 9.472 hücreye genişletildi. Ayrıntı yöntem dokümanı bölüm 9 ve 10.
 
 Repo: `burakwrites/Yangin-Riski` (public)
 Panel: https://burakwrites.github.io/Yangin-Riski/
@@ -20,7 +20,7 @@ Panel: https://burakwrites.github.io/Yangin-Riski/
     operasyonel_hafta.py                 skorlama, data/skorlar.json yazar
     fwi.py                               FWI motoru (Van Wagner)
     model_v3.json                        dondurulmuş birleşik model, 12 özellik
-    noktalar_baz_grid.json               5254 hücre, ad alanı "lat,lon" biçiminde koordinat
+    noktalar_baz_grid.json               9472 hücre (WorldCover maskesi), ad alanı "lat,lon" biçiminde koordinat
     noktalar_idari.json                  hücre başına il, ilce ve hazır "yer" etiketi
     index.html                           panel, data/skorlar.json'u fetch eder
     data/skorlar.json                    panelin okuduğu günlük skor (bot yazar)
@@ -92,7 +92,7 @@ Panel: https://burakwrites.github.io/Yangin-Riski/
 
 ## Açık işler
 
-1. **Operasyonel orman maskesini WorldCover'a taşımak.** Sıradaki iş. Ayrıntılı görev tanımı `gorev_worldcover_maskesi.md` dosyasında.
+1. **Operasyonel orman maskesini WorldCover'a taşımak. TAMAMLANDI (31 Temmuz 2026).** Izgara 5.254'ten 9.472 hücreye çıktı, eski hücreler ve kuraklık birikimi korundu, durum dosyası kısmi ısınmayla genişletildi, yöntem dokümanı bölüm 9 ve 10 güncellendi. İzlenecek: yeni hücrelerin ilk ısınması nedeniyle sonraki günlük koşuların süresi ve dosya boyutu (`data/skorlar.json` 455 KB'den ~800 KB'ye çıktı, panel her açılışta indiriyor).
 2. **Birkaç gün koşuyu izlemek.** Süre (5 ile 10 dakika beklenir), kayıp oranı ve durum dosyasının boyut seyri. Tempo düzeltmesinin tuttuğunu görmek için log'da tempo değerinin 1 saniyede kalıp kalmadığına bakılmalı.
 3. **DC yakınsamasını ölçmek.** DC kesintisiz biriktiğine göre CEMS'e karşı ölçülen sistematik kaymanın iki üç ay içinde kapanması bekleniyor. Sezon sonunda aynı karşılaştırma tekrarlanıp sonuç yöntem dokümanının 7.10 bölümüne işlenmeli.
 4. **Belediye pilotu.** Sahada isabet doğrulaması ve ilk gelir. Bot her gün skorları commit ettiği için hindcast arşivi kendiliğinden birikiyor.
@@ -104,7 +104,7 @@ Panel: https://burakwrites.github.io/Yangin-Riski/
 
 Aralık 0,05 derece. Türkiye enlemlerinde kuzey güney 5,6 km, doğu batı 4,1 ile 4,5 km; hücre yaklaşık 24 kilometrekare.
 
-Izgarayı sıklaştırmak değerlendirildi ve **önerilmedi**. Sebep maliyet değil, kazancın olmaması: Open-Meteo yüksek çözünürlüklü 1 ile 2 km'lik bölgesel modelleri Türkiye'de kullanmıyor, bize gelen hava alanı 7 ile 11 km bandında. Yani ızgara zaten hava verisinden daha sıkı; sıklaştırmak zamansal eksene sıfır bilgi ekler. Mekansal eksende (nüfus) kazanç var ama 2 km yarıçaplı toplama yüzünden hızla azalıyor. Asıl kayıp çözünürlük değil kapsama, o yüzden sıradaki iş maske.
+Izgarayı sıklaştırmak değerlendirildi ve **önerilmedi**. Sebep maliyet değil, kazancın olmaması: Open-Meteo yüksek çözünürlüklü 1 ile 2 km'lik bölgesel modelleri Türkiye'de kullanmıyor, bize gelen hava alanı 7 ile 11 km bandında. Yani ızgara zaten hava verisinden daha sıkı; sıklaştırmak zamansal eksene sıfır bilgi ekler. Mekansal eksende (nüfus) kazanç var ama 2 km yarıçaplı toplama yüzünden hızla azalıyor. Asıl kayıp çözünürlük değil kapsamaydı; bu yüzden maske OSM'den WorldCover'a taşındı (31 Temmuz 2026, yukarıda).
 
 ## Çalışma notları
 
