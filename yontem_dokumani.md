@@ -129,7 +129,7 @@ Rekreasyon noktaları (en yakın piknik, kamp, manzara ya da cazibe noktasına u
 ### 7.8 Hava değişkenlerinin yangın hava indekslerine çevrilmesi (FWI)
 Mevcut modelde kuruluk, ham değişkenlerle (en yüksek sıcaklık, nem, rüzgar, son yağıştan beri gün, son 30 gün yağış) temsil ediliyor; bunlar biriken kuruluğun kaba vekilleridir. Daha ilkeli yol, dünya standardı olan Kanada Orman Yangını Hava İndeksi (FWI) sistemine geçmektir. Sistem aynı ham girdilerden altı bileşen üretir: ince ölü yakıt nemi (FFMC), orta katman nemi (DMC), derin kuraklık (DC), başlangıç yayılım indeksi (ISI), birikim indeksi (BUI) ve bileşik FWI. Tek günün fotoğrafı yerine yakıt nemini gün gün biriktirip hatırlaması, kaba vekillere temel üstünlüğüdür. Tutuşma için en belirleyici bileşenler hızlı kuruyan FFMC ve onu rüzgarla birleştiren ISI'dir. Akdeniz coğrafyasında yaygın olan Keetch Byram Kuraklık İndeksi (KBDI) de hesaplandı.
 
-FWI motoru kanonik referansa (Van Wagner ve Pickett 1985) karşı birebir doğrulandı (test örneğinde FFMC 87.69, DMC 8.55, DC 19.01, ISI 10.85, BUI 8.49, FWI 10.10). Sistemin özyinelemeli olması, yani her günün değerinin önceki güne bağlı olması, bir zaman serisi gerektirir; bu yüzden her eğitim noktasının olay tarihine kadarki günlük hava dizisi arşivden çekilip FWI hesaplanmaktadır ve sızıntıyı önlemek için yalnızca olay tarihinden önceki hava kullanılmaktadır. FWI hesabı tamamlandı ve sonuçlar dürüstçe ölçüldü. Önemli bir bulgu: FWI bileşenleri kaba hava değişkenlerinin yerine konduğunda baseline'ı geçmedi (yaklaşık 0.828'e karşı 0.831). Yani kaba vekiller tutuşma gününün anlık koşullarını zaten iyi yakalıyor; FWI'nin değeri tek günün fotoğrafında değil, biriken kuraklık hafızasında. Nitekim FWI kaba havanın üstüne eklendiğinde her doğrulama şemasında katkı verdi. Üç şemanın AUC'leri (beş katlı, yıllar arası, mekansal blok) şöyle: yalnızca baseline 0.831, 0.834, 0.746; tarım kenarı eklenince 0.837, 0.840, 0.756; FWI eklenince 0.835, 0.837, 0.757; ikisi birlikte eklenince 0.840, 0.842, 0.763. FWI'nin katkısı en çok mekansal testte belirginleşti (bölgeden bölgeye genelleme), ki ulusal bir araç için en kritik sınav budur. Sonuç: FWI'nin dört kodu (FFMC, DMC, DC, ISI) ile tarım kenarı birlikte modele eklendi (bölüm 7.9). KBDI hesaplandı ama dört kodun yanında ek katkısı olmadığından modele alınmadı.
+FWI motoru kanonik referansa (Van Wagner ve Pickett 1985) karşı birebir doğrulandı (test örneğinde FFMC 87.69, DMC 8.55, DC 19.01, ISI 10.85, BUI 8.49, FWI 10.10). Sistemin özyinelemeli olması, yani her günün değerinin önceki güne bağlı olması, bir zaman serisi gerektirir; bu yüzden her eğitim noktasının olay tarihine kadarki günlük hava dizisi arşivden çekilip FWI hesaplanmaktadır ve sızıntıyı önlemek için yalnızca olay tarihinden önceki hava kullanılmaktadır. FWI hesabı tamamlandı ve sonuçlar dürüstçe ölçüldü. Önemli bir bulgu: FWI bileşenleri kaba hava değişkenlerinin yerine konduğunda baseline'ı geçmedi (yaklaşık 0.828'e karşı 0.831). Yani kaba vekiller tutuşma gününün anlık koşullarını zaten iyi yakalıyor; FWI'nin değeri tek günün fotoğrafında değil, biriken kuraklık hafızasında. Nitekim FWI kaba havanın üstüne eklendiğinde her doğrulama şemasında katkı verdi. Üç şemanın AUC'leri (beş katlı, yıllar arası, mekansal blok) şöyle: yalnızca baseline 0.831, 0.834, 0.746; tarım kenarı eklenince 0.837, 0.840, 0.756; FWI eklenince 0.835, 0.837, 0.757; ikisi birlikte eklenince 0.840, 0.842, 0.763. FWI'nin katkısı en çok mekansal testte belirginleşti (bölgeden bölgeye genelleme), ki ulusal bir araç için en kritik sınav budur. Uyarı: buradaki mekansal blok sayıları (baseline 0.746, tam model 0.763) standart bir mekansal blok CV değil, hava özilinti menzili boyunda büyük ayrımlı bir holdout'tan gelir; test noktasının yaklaşık 150 ile 200 kilometre çevresindeki tüm eğitim verisi atılır. Daha küçük bloklu standart mekansal blok CV tam model için 0.83 ile 0.84 verir; yani 0.763 beklenen değer değil, en kötü durum alt sınırıdır. Bu, sonradan yapılan bir uzlaştırma testiyle doğrulandı (ayrıntı bölüm 12, İtiraz 2). Sonuç: FWI'nin dört kodu (FFMC, DMC, DC, ISI) ile tarım kenarı birlikte modele eklendi (bölüm 7.9). KBDI hesaplandı ama dört kodun yanında ek katkısı olmadığından modele alınmadı.
 
 ### 7.9 Birleşik model (mevcut sürüm)
 Yukarıdaki testlerin sonucunda modelin mevcut sürümü on iki özellikle donduruldu: insan baskısı (nüfus), yakıt, beş kaba hava değişkeni (en yüksek sıcaklık, nem, rüzgar, son yağıştan beri gün, son 30 gün yağış), FWI'nin dört kodu (FFMC, DMC, DC, ISI) ve en yakın tarım alanına uzaklık. Beş katlı çapraz doğrulama AUC'si 0.840'tır (önceki sürüm 0.831). Model yine yorumlanabilir lojistik regresyondur ve donduruldu; saf aritmetik skorun eğitim kütüphanesiyle birebir aynı olduğu doğrulandı.
@@ -255,7 +255,64 @@ Not: erişim katmanı (yola ve yerleşime uzaklık) sınandı ve nüfusu geçeme
 
 ---
 
-## 12. Kaynaklar
+## 12. Bilinen İtirazlar ve Yanıtlar
+
+Bu bölüm, tezin ve yöntemin kamusal bir tartışmada karşılaşacağı en güçlü itirazları önden yazar ve elde olan veriyle sınar. Amaç, bir bilirkişinin (OGM, yatırımcı, akademik hakem) soracağı zor soruyu o sormadan sormak ve dürüstçe yanıtlamaktır. Her itiraz mümkün olduğunca sayıyla test edilir; sonuçlar tezi zayıflatsa da olduğu gibi yazılır.
+
+### İtiraz 1: Model tezi sınamak yerine örnekleme çerçevesiyle en baştan varsayıyor olabilir (maruziyet sorunu)
+
+**İtiraz.** Model, varlık arka plan (presence background) tasarımıyla kurulur: tutuşma noktaları (varlık) ile Türkiye ormanlarından rastgele seçilmiş noktalar (arka plan) ayırt edilir. Ama Türkiye'de rastgele bir orman pikseli ezici çoğunlukla ıssız dağ yamacıdır; tutuşma noktaları ise tanımı gereği insan etkinliğinin olduğu yerdir. Dolayısıyla iki grubu en iyi ayıran değişkenin çevre nüfus çıkması neredeyse tasarımın bir zorunluluğudur, bağımsız bir bulgu değil. Bir eleştirmen şöyle diyebilir: "Bu bir tutuşma modeli değil, ormana yakın nüfus haritası; yüksek AUC de buradan geliyor." Buna bir de hava asimetrisi eklenir: arka plan noktalarına olay havuzundan rastgele bir tarih atanır (bölüm 7.2), yani nüfus kontrastı yapısalken hava kontrastı yapaydır ve bu, nüfusu haksız yere baskın gösterebilir.
+
+**Sınama.** Kaygıyı doğrudan test etmek için maruziyet sabitlendi. Her tutuşma noktası, neredeyse aynı log çevre nüfusa sahip bir arka plan noktasıyla birebir eşleştirildi (log nüfus üzerinde caliper eşleştirme). Eşleştirilmiş sette nüfus artık iki grubu ayıramaz; geriye "eşit nüfuslu orman noktaları arasında model hâlâ tutuşmayı ayırıyor mu" sorusu kalır. Üç kesit alındı: dondurulmuş modelin eşleştirilmiş AUC'si, çevre nüfus çıkarılmış modelin (hava, yakıt, tarım kenarı) çapraz doğrulama AUC'si, ve nüfusun doz yanıtı.
+
+**Bulgular.** Eşleştirmeden önce log nüfusun standardize ortalama farkı 1.01, yani çok büyük (ham çevre nüfus ortancası tutuşmada 551, arka planda 83). Eşleştirme bu farkı 0.02'ye indirdi (2109 çift).
+
+| Ölçüm | Tam set | Nüfus eşleştirilmiş |
+|---|---|---|
+| Dondurulmuş model (yeniden fit yok) | 0.844 | 0.706 |
+| Yalnız çevre nüfus | 0.766 | 0.491 |
+| Nüfussuz (hava, yakıt, tarım kenarı) | 0.811 | 0.749 |
+| Tam on iki özellik (yeniden fit) | 0.843 | 0.752 |
+
+Nüfusun doz yanıtı basamak değil düzgün gradyandır: çevre nüfus desilleri boyunca varlık oranı 0.15, 0.18, 0.32, 0.44, 0.44, 0.50, 0.61, 0.70, 0.78, 0.86 diye monoton yükselir. "İnsan var ya da yok" ikili eşiği olsaydı ilk desillerde bir basamak beklenirdi; onun yerine üç büyüklük mertebesi boyunca süren bir gradyan görülür. Ek olarak erişilebilir alt kümede (çevre nüfus, tutuşma ortancası olan 551 ve üzeri) yalnız nüfusun AUC'si hâlâ 0.628'dir; etki, kalabalıklaştıkça artmaya devam eder.
+
+**Yanıt.** İtirazın bir yarısı haklıdır ve artık sayısı vardır. Dondurulmuş modelin şans üstü ayrım payının (0.344) yaklaşık yüzde 40'ı, kalabalık orman ile ıssız orman arasındaki maruziyet kontrastından gelir; maruziyet dengelendiğinde beceri 0.706'ya iner. Bu yüzden 0.840 rakamı, temiz ayrım becerisi olarak değil, örneklem çerçevesinin bir kısmını içeren bir değer olarak okunmalıdır; maruziyet kontrollü gerçek beceri 0.71 ile 0.75 bandındadır. Dışarıya sunumda bu ayrım açıkça yapılmalıdır.
+
+İtirazın diğer yarısı, yani "model yalnızca bir nüfus haritasıdır, hava kozmetiktir" iddiası ise yanlışlanır. En sert senaryoda eşleştirilmiş AUC'nin 0.5'e düşmesi beklenirdi; düşmedi, 0.749'da kaldı (yalnız hava 0.736). Eşit nüfuslu orman noktaları arasında bile gerçek tutuşma günü koşulları rastgele orman gününden güçlü biçimde ayrılır; yani nüfustan bağımsız, gerçek bir ikinci eksen vardır. Buna doz yanıtının monotonluğu ve gradyanın erişilebilir alt kümede sürmesi eklenince tezin çekirdeği (insan baskısı birincil eksen, hava ikinci eksen) ayakta kalır. Değişen tek şey, tek bir rakamın nasıl sunulduğudur.
+
+**Nihai test: zamansal case-crossover.** Eşleştirme yalnızca nüfus eksenini sabitler; arka plan noktaları hâlâ rastgele tarih taşıdığından "hava ayırıyor" bulgusu kısmen "gerçek tutuşma günü rastgele yaz gününden sıcaktır" tautolojisinden beslenir ve 0.749 bir tavan değeridir. Bunu temizlemek için zamansal case-crossover kuruldu: her tutuşma olayı, aynı konumun yanmayan günleriyle karşılaştırıldı (aynı yıl, olay gününün ±21 günü içinde, Haziran ile Eylül bandında, ±3 günlük tampon hariç; olay başına ortalama 32 referans gün). Bu tasarım nüfusu, yakıtı, tarım kenarını ve araziyi birebir sabitler (aynı konum) ve kontrol günleri gerçektir; hem "uzak ıssız konum" hem "rastgele tarih" artefaktı ortadan kalkar. Aynı konumda statik özellikler sabit olduğundan tabaka içi sıralamayı etkilemez; yani ölçülen şey doğrudan dağıtılmış modelin hangi günü seçtiği, yani hava alt skorudur. 900 olay üzerinde koşuldu (yıla göre tabakalı örnek; olay günü havasının eğitim değerleriyle birebir aynı olduğu doğrulandı).
+
+Sonuç: tabaka içi case-crossover AUC'si (0.5, havanın gün zamanlamada etkisiz olması demektir) modelin hava alt skoru için 0.587'dir (yüzde 95 güven aralığı 0.569 ile 0.605), yani 0.5'in belirgin üstünde ama mütevazı. Sinyali hızlı tepki veren bileşenler taşır: nem 0.610, ISI 0.606, FFMC 0.603, bileşik FWI 0.600; yavaş kuraklık kodları ise sıfıra yakındır (DC 0.523, DMC 0.531, son 30 gün yağış 0.510). Olay günü, kendi üç haftalık penceresinin en tehlikeli günü olma oranı yüzde 7.7'dir (şans yaklaşık yüzde 3).
+
+Yorum. Bu bulgu üç şeyi netleştirir. Birincisi, "yalnız hava" için raporlanan yaklaşık 0.77'lik gücün büyük kısmı mevsimsel ve bölgesel hava farkından gelir (sıcak kurak bölge ya da ay ile rastgele nokta arasındaki fark), günden güne zamanlamadan değil; sabit bir yerde havanın gün seçme becerisi yalnızca 0.587'dir. Model havayı meşru biçimde kullanır, ama gücü "hangi mevsim ve hangi bölge" ekseninde yoğunlaşır. İkincisi, bu tezi güçlendirir: bir orman haftalar boyunca kuruyup pencere yanmaya hazır hale geldiğinde, o pencere içinde tam hangi günün tutuşacağını hava ancak zayıf ayırır; geri kalanı, tanımı gereği havayla öngörülemeyen insan kıvılcımıdır. "Kuraklık zemini hazırlar, kıvılcımı insan çakar" cümlesinin doğrudan sayısal izi budur. Üçüncüsü, sinyalin hızlı yakıt nemi ve yayılım bileşenlerinde toplanması, bölüm 7.8'deki FFMC ve ISI vurgusunu bağımsız biçimde doğrular.
+
+Ürün açısından dürüst sonuç: aracın gerçek çözünürlüğü "hangi hafta ve hangi yer" düzeyindedir; "hangi tam gün" düzeyinde havanın katkısı sınırlıdır (case-crossover AUC 0.587, en riskli gün yüzde 7.7). Panelin uzak günleri kesinlik değil eğilim olarak sunma ilkesi (bölüm 9) bu bulguyla uyumludur ve korunmalıdır.
+
+Tasarım sınırı: case-crossover mevsimsel ve mekansal sinyali bilinçli olarak siler, yalnız kısa vadeli günlük anomaliyi bırakır; dolayısıyla 0.587 modelin genel becerisi değil, "aynı yer, aynı mevsim, hangi gün" becerisidir. Modelin mekansal ve mevsimsel gücü ayrıdır ve bu testin kapsamı dışındadır.
+
+### İtiraz 2: Manşetteki 0.840 mekansal sızıntıyla şişmiş olabilir
+
+**İtiraz.** Manşetteki 0.840 rastgele beş katlı çapraz doğrulamadan gelir. Mekansal veride rastgele katlama, bir test noktasının birkaç kilometre ötesinde bir eğitim noktası bırakabilir; nüfus ve tarım kenarı gibi statik mekansal özellikler komşu noktalarda neredeyse aynı olduğundan model bu yakınlıktan iyimser bir avantaj devşirir. Bir eleştirmen şöyle diyebilir: "Gerçek mekansal genelleme çok daha düşüktür; 0.840 komşuluk sızıntısıyla şişmiştir."
+
+**Sınama.** Önce boru hattının sadık olduğu doğrulandı: beş katlı 0.843, yıllar arası 0.845, baseline beş katlı 0.831; üçü de dokümanın kayıtlı sayılarıyla örtüşür. Sonra mekansal şemalar süpürüldü: blok boyutu 0.25 ile 5 derece, tampon 0 ile 200 kilometre, bırak-bir-bölge (KMeans) K 2 ile 12; her biri hem kat ortalaması hem havuzlanmış AUC ile.
+
+**Bulgular.**
+
+| Şema (tam model) | AUC |
+|---|---|
+| Rastgele beş katlı (manşet) | 0.843 |
+| Standart mekansal blok (0.25 ile 5 derece, tampon 50 km ve altı) | 0.83 ile 0.84 |
+| Orta tampon (100 ile 150 km) | 0.80 ile 0.82 |
+| Bırak-bir-bölge (K 2 ile 12) | 0.80 ile 0.83 |
+| Agresif ayrım (yaklaşık 200 km tampon) | 0.74 ile 0.77 |
+
+**Yanıt.** Komşuluk sızıntısı küçüktür. Standart mekansal blok CV'de düşüş yalnızca 0.01 ile 0.03 mertebesindedir; manşetteki 0.840 mekansal olarak dürüsttür ve ürün yeni bir bölgeye taşındığında beklenen beceri yaklaşık 0.80 ile 0.84'tür. Nedeni fizikseldir: baskın değişken olan nüfus 0.05 derecede gerçekten yerel olarak değişir (kalabalık bir vadi, hemen yanında ıssız bir sırt), hava ise bölgeseldir ve zaten düzgün genelleşir; bu yüzden komşuluğun katacağı iyimserlik sınırlıdır. Bu bulgu, tarım kenarının katkısının mekansal testte büyümesiyle (bölüm 7.7) de tutarlıdır.
+
+Bu sınama aynı zamanda bölüm 7.8'deki mekansal blok sayısını (tam model 0.763, baseline 0.746) uzlaştırdı. O sayı ancak yaklaşık 150 ile 200 kilometrelik agresif bir mekansal ayrımla, yani test noktasının çevresindeki geniş bir bantta tüm eğitim verisi atıldığında çıkar. Bu, hava özilinti menzili boyunda ilkeli ama muhafazakâr bir holdout'tur; bir hata değil, bir en kötü durum alt sınırıdır. Dolayısıyla iki uç okuma da yanlıştır: "0.840 sahtedir" de, "modelin gerçek mekansal becerisi 0.76'dır" da. Dürüst operasyonel sayı standart mekansal blokla 0.83 ile 0.84, en katı büyük ayrımlı holdout'ta ise 0.76'ya inen bir alt sınırdır.
+
+---
+
+## 13. Kaynaklar
 
 NASA FIRMS. Uydu yangın tespitleri, VIIRS S-NPP 375 metre. firms.modaps.eosdis.nasa.gov
 OpenStreetMap. Yol ve yerleşim verisi, Overpass API. openstreetmap.org
@@ -278,3 +335,9 @@ Son güncelleme: 29 Temmuz 2026 (CEMS FWI doğrulaması eklendi, bölüm 7.10)
 Son güncelleme: 30 Temmuz 2026 (durum taşıyan mimari ve tam otomasyon işlendi; bölüm 9 yeniden yazıldı, bölüm 4.5, 7.10, 10 ve 11 güncellendi)
 
 Son güncelleme: 31 Temmuz 2026 (operasyonel orman maskesi OpenStreetMap'ten ESA WorldCover'a taşındı, ızgara 5.254'ten 9.472 hücreye çıktı; bölüm 9 ve 10 güncellendi)
+
+Son güncelleme: 1 Ağustos 2026 (Bilinen İtirazlar ve Yanıtlar bölümü eklendi; İtiraz 1, maruziyet çerçevesi eşleştirme testiyle sayısal olarak sınandı; Kaynaklar bölüm 13'e kaydı)
+
+Son güncelleme: 1 Ağustos 2026 (İtiraz 1 nihai testi, zamansal case-crossover, 900 olayla tamamlandı ve bölüme işlendi; modelin hava alt skorunun gün zamanlama becerisi case-crossover AUC 0.587)
+
+Son güncelleme: 1 Ağustos 2026 (İtiraz 2 eklendi, mekansal sızıntı sınandı; bölüm 7.8'deki mekansal blok 0.763 uzlaştırıldı, standart mekansal blok CV 0.83 ile 0.84, 0.763 büyük ayrımlı en kötü durum alt sınırı olarak netleştirildi)
