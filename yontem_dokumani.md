@@ -336,8 +336,8 @@ Son güncelleme: 30 Temmuz 2026 (durum taşıyan mimari ve tam otomasyon işlend
 
 Son güncelleme: 31 Temmuz 2026 (operasyonel orman maskesi OpenStreetMap'ten ESA WorldCover'a taşındı, ızgara 5.254'ten 9.472 hücreye çıktı; bölüm 9 ve 10 güncellendi)
 
-Son güncelleme: 1 Ağustos 2026 (Bilinen İtirazlar ve Yanıtlar bölümü eklendi; İtiraz 1, maruziyet çerçevesi eşleştirme testiyle sayısal olarak sınandı; Kaynaklar bölüm 13'e kaydı)
+Son güncelleme: 6 Ağustos 2026 (Bilinen İtirazlar ve Yanıtlar bölümü eklendi; İtiraz 1, maruziyet çerçevesi eşleştirme testiyle sayısal olarak sınandı; Kaynaklar bölüm 13'e kaydı)
 
-Son güncelleme: 1 Ağustos 2026 (İtiraz 1 nihai testi, zamansal case-crossover, 900 olayla tamamlandı ve bölüme işlendi; modelin hava alt skorunun gün zamanlama becerisi case-crossover AUC 0.587)
+Son güncelleme: 6 Ağustos 2026 (İtiraz 1 nihai testi, zamansal case-crossover, 900 olayla tamamlandı ve bölüme işlendi; modelin hava alt skorunun gün zamanlama becerisi case-crossover AUC 0.587)
 
-Son güncelleme: 1 Ağustos 2026 (İtiraz 2 eklendi, mekansal sızıntı sınandı; bölüm 7.8'deki mekansal blok 0.763 uzlaştırıldı, standart mekansal blok CV 0.83 ile 0.84, 0.763 büyük ayrımlı en kötü durum alt sınırı olarak netleştirildi)
+Son güncelleme: 6 Ağustos 2026 (İtiraz 2 eklendi, mekansal sızıntı sınandı; bölüm 7.8'deki mekansal blok 0.763 uzlaştırıldı, standart mekansal blok CV 0.83 ile 0.84, 0.763 büyük ayrımlı en kötü durum alt sınırı olarak netleştirildi)

@@ -1,5 +1,5 @@
 # YangınRiski.com devir notu
-Son güncelleme: 31 Temmuz 2026
+Son güncelleme: 6 Ağustos 2026
 
 Projenin bulunduğu nokta, biten işler, açık işler ve tekrar eden sorunlar burada. Bozulmaması gereken kurallar ve dosya haritası için `CLAUDE.md` dosyasına bakınız.
 
@@ -55,6 +55,8 @@ Panel: https://burakwrites.github.io/Yangin-Riski/
     top        en riskli 30 hücre, yedi günlük seyriyle
 
 ## Yaşanan sorunlar ve çözümleri
+
+**İl/ilçe etiketleri doğu ve güneyde yanlıştı (6 Ağustos 2026).** "Bu Hafta" popup'ında bazı hücreler yanlış il/ilçe gösteriyordu (Siirt'e "Bitlis Merkez", Diyarbakır Lice'ye "Bingöl / Genç"). İki katmanlı hata: (1) WorldCover'la eklenen yeni hücreler, ilçe poligonunda etiketli eski hücre bulamayınca `idari_worldcover.py`'nin `nearest` yedeğiyle en yakın eski hücrenin ilini devralıyordu; eski ızgarada boş olan illerde (Siirt gibi) bu sınırı aşıyordu. (2) Eski il etiketlemesinde de yaygın sessiz hata vardı (Finike "Burdur", Anamur "Antalya", Ermenek "Mersin"). Çözüm: il ve ilçe resmi mülki idare sınırlarından (`İl_Sınırı`, `İlçe_Sınırı`, `Yerlesim_Noktas`) yetkili biçimde yeniden türetildi; ikisi de aynı kaynaktan geldiği için tutarlı, imkansız çift kalmadı. 887 il + 844 ilçe düzeldi. `noktalar_idari.json` (Deploy + arşiv) yeniden yazıldı, panel hemen düzelsin diye `data/skorlar.json`'un `yer`, harita indeksleri ve `top` alanları yamalandı. Kanonik yöntem artık `idari_resmi.py` (arşiv); `idari_worldcover.py`'nin nearest etiketlemesinin yerini alır ve ileride ızgara değişirse bu kullanılmalı. Not: OSM `network` plakası bazı illerde (Mersin, Zonguldak ilçeleri) yanlış olduğundan il yalnızca resmi poligondan alınır; OSM plakası sadece güneydoğuda birleşen 5 ilin (Gaziantep, Kilis, Mardin, Şanlıurfa, Şırnak) ada göre yedeğidir.
 
 **ReadTimeout ile koşu düşüyordu.** Betikte yalnızca 429 yakalanıyordu. Zaman aşımı, bağlantı hatası ve 5xx de kademeli beklemeyle tekrar denenecek şekilde eklendi.
 
