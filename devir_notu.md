@@ -92,6 +92,18 @@ Panel: https://burakwrites.github.io/Yangin-Riski/
 
 **Panelde hata göstericisi var.** Harita katmanlarındaki bir hata eskiden bütün React ağacını düşürüyor ve siyah ekran bırakıyordu. Katmanlar yalıtıldı; ayrıca panel açılamazsa siyah ekran yerine hatanın metni yazılıyor.
 
+## 15 Ağustos 2026'da yapılanlar
+
+Tetikleyici: Edirne Enez Büyükevren yangınının (11-12 Ağustos 2025) Geçmiş Yangınlar katmanında görünmemesi. İnceleme, hedef tanımında üç ayrı açık ortaya çıkardı ve üçü de kapatıldı. Ayrıntı yöntem dokümanı bölüm 12, İtiraz 3, 4 ve 5.
+
+**Hedef kümesi artık yeniden üretilebilir.** Önceki 3.397 olaylık küme betiksiz duruyordu ve yöntem dokümanındaki tarif onu yeniden üretmiyordu (dört ayak izi tanımıyla denendi, uyum Cohen kappa 0,72 tavanında kaldı; korunan olayların yüzde 49'u dokümandaki eşiği sağlamıyordu). Kümeleme adımının sadık olduğu doğrulandı (225.856 tespit birebir, kümelerin boyutları yüzde 99,6 aynı), sapma filtre adımındaydı. `atolye/uretim/hedef_kur.py` yazıldı: parametreli, sabit tohumlu, her adımın sayısını manifeste yazan, önbelleği parametre değişince geçersizleyen. Yeni küme 2.054 pozitif ve 2.054 referans; betik iki koşuda birebir aynı sayıyı verdi.
+
+**Pozitif ve referans sınıfı artık aynı kuralla tanımlanıyor.** Eskiden pozitifler ayak izi alan çoğunluğuyla, referanslar tek nokta testiyle taniniyordu. Yeni betikte her referans noktasına rastgele bir pozitif olayın tespit deseni giydiriliyor, yani iki sınıf aynı şekil ve alan üzerinden ölçülüyor. Referanslar ayrıca ilçe poligonlarıyla Türkiye kara sınırına kırpılıyor.
+
+**model_v4, on üç özellik.** Tarım kenarına ikinci bir ölçüm eklendi: ESA WorldCover sınıf 40'a uzaklık. OSM'in yerine konduğunda kazanç yok (p 0,24), ama ikisi birlikte kullanıldığında beş katlı AUC 0,8424'ten 0,8480'e çıkıyor (eşleştirilmiş fark artı 0,0056, yüzde 95 aralık artı 0,0012 ile artı 0,0089). Sebep ikisinin farklı şey ölçmesi: log korelasyon yalnızca 0,456. Ayrıntı bölüm 7.9b. `noktalar_baz_grid.json` içine `farm_dist_wc` alanı eklendi (9.472 hücrenin hepsi dolu, ızgara kafesi ve mevcut alanlar değişmedi), `operasyonel_hafta.py` model_v4'ü yüklüyor.
+
+Zincir uçtan uca sınandı: mevcut `operasyonel_tahmin.json` ile v3 ve v4 ayrı ayrı koşturuldu. İkisi de 9.472 hücrenin tamamını skorluyor, harita satırı 15 alanda kalıyor, hiçbir hücre düşmüyor. Tepe risk korelasyonu Pearson 0,969, Spearman 0,964; ilk 20 riskli ilçenin 14'ü ortak. Test sonrası `data/skorlar.json` botun sürümüne geri alındı.
+
 ## Açık işler
 
 1. **Operasyonel orman maskesini WorldCover'a taşımak. TAMAMLANDI (31 Temmuz 2026).** Izgara 5.254'ten 9.472 hücreye çıktı, eski hücreler ve kuraklık birikimi korundu, durum dosyası kısmi ısınmayla genişletildi, yöntem dokümanı bölüm 9 ve 10 güncellendi. İzlenecek: yeni hücrelerin ilk ısınması nedeniyle sonraki günlük koşuların süresi ve dosya boyutu (`data/skorlar.json` 455 KB'den ~800 KB'ye çıktı, panel her açılışta indiriyor).
@@ -101,6 +113,9 @@ Panel: https://burakwrites.github.io/Yangin-Riski/
 5. **Mesire ve orman parkı noktalarını skorlamak.** Izgarayı sıklaştırmak yerine önerilen yol. Belediyeye satılan bilgi ızgara noktası değil, hafta sonu insan giden piknik alanı. Ulusal ölçekte birkaç bin nokta eder.
 6. **Yangın yayılım modülü.** Ayrı ürün, OGM iş birliği.
 7. **İsteğe bağlı.** yanginriski.com alan adının Pages'e bağlanması, repoya README, durum dosyasının küçültülmesi.
+8. **Yeni hedef kümesiyle modeli eğitmek.** `hedef_kur.py` 2.054 pozitif üretti ama bunların bir kısmı eski eğitim tablosunda yok, dolayısıyla hava ve FWI özellikleri elde değil. Open-Meteo arşivinden çekim gerekiyor. Bu yapılmadan model_v4 eski (kaynağı belgesiz) hedef kümesiyle eğitilmiş durumdadır; bu, bölüm 12 İtiraz 4'te açıkça yazılıdır.
+9. **Hedef ölçütünü maruziyete taşımak.** Mevcut ölçüt yanmış alan bileşimine, yani bir sonuca bakıyor; sonuç söndürme başarısına bağlı olduğu için hedef kısmen söndürmeden kaçabilmiş yangınlara yanlı. Önerilen yön: tutuşma noktasının en yakın ormana uzaklığı, yani tutuşmadan önce var olan ve sağlam ölçülebilen bir büyüklük. Ayrıntı bölüm 12, İtiraz 3.
+10. **Eski 3.397'lik hedef kümesinin akıbeti.** Panelin Geçmiş Yangınlar katmanı hâlâ o kümeyi (`olaylar_indeks.json`) okuyor. Yeni küme modele geçtiğinde panelin de aynı kümeyi göstermesi gerekir, yoksa doküman ile panel farklı sayılar anlatır.
 
 ## Izgara hakkında bilinenler
 

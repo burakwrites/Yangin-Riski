@@ -26,7 +26,8 @@ Canlı panel: https://burakwrites.github.io/Yangin-Riski/
     operasyonel_hava.py                Open-Meteo çekimi + FWI, durum taşıyan
     operasyonel_hafta.py               skorlama, data/skorlar.json yazar
     fwi.py                             FWI motoru (Van Wagner denklemleri)
-    model_v3.json                      dondurulmuş model, 12 özellik
+    model_v4.json                      dondurulmuş model, 13 özellik (kullanılan)
+    model_v3.json                      önceki sürüm, 12 özellik (yedek)
     noktalar_baz_grid.json             ulusal ızgara, 9.472 hücre (ESA WorldCover maskesi) + statik özellikler
     noktalar_idari.json                hücre başına il ve ilçe etiketi
     index.html                         panel (tek dosya, React + Leaflet + Babel)
@@ -47,6 +48,15 @@ kuraklık birikimi eşleşemez ve zincir tam soğuk başlangıca düşer.
 bölenine sahiptir. Model bu değişkeni eğitimdeki ölçeğe göre standardize eder;
 farklı bir yarıçap ya da bölen skorları **sessizce** bozar, yani panel çalışmaya
 devam eder ama sıralama yanlış olur. Ayrıntı: yöntem dokümanı bölüm 4.4.
+
+**Izgaradaki her hücrede modelin istediği bütün alanlar dolu olmalı.**
+`operasyonel_hafta.py` içindeki `risk()`, özelliklerden biri `None` ise o hücre
+için `None` döner ve hücre skor dosyasına hiç yazılmaz; panel çalışmaya devam
+eder ama o hücre haritadan **sessizce** kaybolur. model_v4 on üç özellik ister,
+yani `noktalar_baz_grid.json` içinde `human`, `fuel`, `farm_dist` ve
+`farm_dist_wc` alanlarının 9.472 hücrenin hepsinde dolu olması gerekir. Izgaraya
+yeni bir statik özellik eklendiğinde eksik hücre sayısı sıfır olarak
+doğrulanmalıdır. Üretici betik `atolye/uretim/farmdist_wc_cek.py`.
 
 **`data/skorlar.json` içindeki harita satırı 15 alanlıdır.** Sıra:
 `[lat, lon, tepe_risk, yer_indeksi, ort_risk, tepe_gün, ffmc, dmc, dc, isi,

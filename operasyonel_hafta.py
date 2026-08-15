@@ -45,9 +45,12 @@ def yukle_ops(ad):
 
 
 try:
-    M = yukle("model_v3.json")     # birlesik model (FWI + tarim kenari)
+    M = yukle("model_v4.json")     # on uc ozellik: v3 + WorldCover tarim kenari
 except FileNotFoundError:
-    M = yukle("model_v2.json")
+    try:
+        M = yukle("model_v3.json")  # birlesik model (FWI + tarim kenari)
+    except FileNotFoundError:
+        M = yukle("model_v2.json")
 try:
     BAZ = yukle("noktalar_baz_grid.json")   # ulusal izgara
 except FileNotFoundError:
@@ -164,6 +167,7 @@ for reg in TAHM:
     gunluk = []
     for f in reg.get("forecast", []):
         rec = {"human": st["human"], "fuel": st["fuel"], "farm_dist": st.get("farm_dist"),
+               "farm_dist_wc": st.get("farm_dist_wc"),
                "tmax": f.get("tmax"), "humidity": f.get("humidity"), "wind": f.get("wind"),
                "days_since_rain": f.get("days_since_rain"), "precip_30d": f.get("precip_30d"),
                "ffmc": f.get("ffmc"), "dmc": f.get("dmc"), "dc": f.get("dc"), "isi": f.get("isi")}

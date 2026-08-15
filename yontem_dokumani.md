@@ -136,6 +136,18 @@ Yukarıdaki testlerin sonucunda modelin mevcut sürümü on iki özellikle dondu
 
 Standardize katsayıların büyüklük sırası modelin neye dayandığını şeffaf gösterir: en güçlü ayraç insan baskısıdır (yaklaşık 0.90), onu FFMC ince yakıt kuruluğu (0.48), en yüksek sıcaklık (0.45) ve tarım kenarı (negatif işaretli, yaklaşık 0.39 büyüklüğünde; yani tarıma yakınlık riski artırır) izler, ardından DC ve DMC kuraklık hafızası gelir. Dürüst bir not: FWI kodları modele girince bazı kaba hava değişkenlerinin (son yağıştan beri gün, son 30 gün yağış) tek tek katsayıları işaret değiştirir. Bu, kuraklık bilgisinin artık büyük ölçüde FWI kodlarında taşınmasından doğan eşdoğrusallık etkisidir; modelin bütün olarak tahmin gücünü bozmaz, ama bu iki değişkenin katsayısı artık tek başına yorumlanmamalıdır. Modelin omurgası değişmedi: en güçlü ayraç hâlâ insan baskısıdır, kuruluk ve tarım kenarı zemini hazırlar.
 
+### 7.9b Tarım kenarının ikinci ölçümü (model_v4, on üç özellik)
+
+Tarım kenarı özelliği OpenStreetMap landuse poligonlarından (farmland, orchard, vineyard) hesaplanıyordu. Bu kaynağın Türkiye tarım kapsaması denetlendiğinde eksik olduğu görüldü: hiç orman teması olmayan, yani düpedüz tarlada yanan yangınların en yakın OSM tarım poligonuna ortanca uzaklığı 3.17 kilometre çıkıyor. Tarlada yanan bir yangının tarlaya üç kilometre uzak olması olanaksız olduğuna göre katman, tarım alanının önemli bir kısmını kaçırmaktadır. Buna karşılık ESA WorldCover sınıf 40 (Ekili alan) tam kapsamlıdır ve zaten projenin arazi örtüsü kaynağıdır.
+
+İki ölçüm karşılaştırıldı. WorldCover tabanlı uzaklık, ayırıcılık bakımından belirgin biçimde daha keskindir (pozitiflerde ortanca 0.24 kilometre, referanslarda 1.10; oran 4.5 kat, OSM'de 2.7 kat). Ama OSM'in yerine konduğunda model kazanmaz: 5x10 tekrarlı eşleştirilmiş çapraz doğrulamada fark artı 0.0006, yüzde 95 aralık eksi 0.0060 ile artı 0.0061, p eşittir 0.24. Yani mutlak mesafeler beş kat farklı olsa da sıralama bilgisi aynıdır.
+
+Kazanç ikisinin birlikte kullanılmasındadır. İki ölçümün log korelasyonu yalnızca 0.456'dır, çünkü farklı şeyler ölçerler: OSM haritalanmış ve çoğu yerleşime yakın kalıcı tarımı (bahçe, bağ, tescilli tarla), WorldCover ise fiilî ekili örtüyü yakalar. Birlikte kullanıldığında beş katlı AUC 0.8424'ten 0.8480'e çıkar; eşleştirilmiş fark artı 0.0056, yüzde 95 aralık artı 0.0012 ile artı 0.0089. Ölçek için: tarım kenarının kendisi modele artı 0.0077 katmıştı, yani bu ikinci ölçüm onun yaklaşık yüzde 70'i kadarını daha ekler ve güven aralığı sıfırı içermez.
+
+Model bu on üçüncü özellikle yeniden donduruldu (model_v4.json). İki tarım kenarı katsayısı neredeyse eşittir (eksi 0.378 ve eksi 0.379), yani ikisi de bağımsız ağırlık taşır. Üretim betiği `uretim/farmdist_wc_cek.py`, dondurma betiği `uretim/model_v4_dondur.py`.
+
+Uygulama notu. Uzaklık, WorldCover karolarından okunan pencerelerle hesaplanır. İlk sürüm her noktayı yalnızca kendi üç derecelik karosundan okuyordu; karo kenarına yakın bir nokta için en yakın ekili alan komşu karoda olduğunda bu, sessizce olduğundan büyük bir mesafe üretiyordu. Izgaranın yüzde 2.9'u ve eğitim noktalarının yüzde 1.6'sı bu durumdaydı. Betik, arama penceresine giren bütün karolardan okuyup en küçük mesafeyi alacak biçimde düzeltildi; düzeltme eğitim tarafında 36 noktanın değerini değiştirdi (modele etkisi ihmal edilebilir) ama ulusal ızgarada iki hücrenin değerini boş olmaktan kurtardı, ki bu hücreler aksi halde panelden sessizce düşecekti.
+
 ### 7.10 FWI motorunun bağımsız doğrulaması (CEMS)
 Motorun Van Wagner denklemlerine karşı birebir doğrulanması hesabın doğruluğunu göstermişti (bölüm 7.8); bu adım ise uçtan uca zincirin, yani Open-Meteo girdisi, ısınma penceresi ve günlük hesabın bütününün, dünya referansıyla aynı tehlike sıralamasını üretip üretmediğini sınadı. Bağımsız referans, Copernicus Acil Durum Yönetim Servisi'nin (CEMS) ERA5 reanalizi ile hesapladığı küresel FWI arşividir; Avrupa'nın resmi yangın bilgi sistemi EFFIS'in altında yatan veridir (yaklaşık 25 kilometre çözünürlük, günlük, 1940'tan bugüne). İki hat tamamen bağımsızdır: farklı hava kaynağı, farklı hesap altyapısı, farklı kurum.
 
@@ -310,6 +322,80 @@ Tasarım sınırı: case-crossover mevsimsel ve mekansal sinyali bilinçli olara
 
 Bu sınama aynı zamanda bölüm 7.8'deki mekansal blok sayısını (tam model 0.763, baseline 0.746) uzlaştırdı. O sayı ancak yaklaşık 150 ile 200 kilometrelik agresif bir mekansal ayrımla, yani test noktasının çevresindeki geniş bir bantta tüm eğitim verisi atıldığında çıkar. Bu, hava özilinti menzili boyunda ilkeli ama muhafazakâr bir holdout'tur; bir hata değil, bir en kötü durum alt sınırıdır. Dolayısıyla iki uç okuma da yanlıştır: "0.840 sahtedir" de, "modelin gerçek mekansal becerisi 0.76'dır" da. Dürüst operasyonel sayı standart mekansal blokla 0.83 ile 0.84, en katı büyük ayrımlı holdout'ta ise 0.76'ya inen bir alt sınırdır.
 
+### İtiraz 3: Orman yangını tanımındaki yüzde 50 eşiği keyfidir
+
+**İtiraz.** Hedef kümesi, tespit ayak izinin yarısından fazlasının ESA WorldCover ağaç ya da maki sınıfında olması şartıyla kuruldu (bölüm 6). Bir eleştirmen haklı olarak sorar: neden yüzde 50? Neden 40 ya da 70 değil? Eşik bir kaç puan oynatıldığında hedef kümesi ve dolayısıyla bütün sonuçlar değişiyorsa, manşetteki rakamlar bir ölçümden çok bir tercihin sonucudur.
+
+Bu itiraz somut bir vakayla tetiklendi. Edirne'nin Enez ilçesine bağlı Büyükevren ve Gülçavuş köyleri sahilinde 11 Ağustos 2025 gecesi çıkan ve rüzgarla büyüyen yangın (64 VIIRS tespiti, yaklaşık 700 hektarlık ayak izi) veri kümesinde orman yangını olarak görünmez. Ayak izinin ağaç ve maki payı, makul dört farklı uygulama altında yüzde 46.9 ile yüzde 50.5 arasında ölçülür; yani ölçüm belirsizliği eşiğin kendisinden büyüktür ve olay eşiğin yanlış tarafına yarım puanla düşmüştür. Alanın yüzde 39.5'i Çayır ve Mera sınıfındadır, bu sınıf orman tanımına bilinçli olarak dahil edilmemiştir.
+
+**Sınama.** Üç ayrı test yapıldı. Birincisi, eşiğin doğal bir ayrım noktasına düşüp düşmediği: 6.000 kümelik rastgele örneklemde ayak izi orman payının dağılımı çıkarıldı. İkincisi, eşik duyarlılığı: hedef kümesi giderek daha saf orman şartıyla budanıp model her seferinde yeniden kuruldu. Üçüncüsü, eşiğin hemen altındaki yangınların sistematik olarak farklı olup olmadığı: yüzde 40 ile 50 bandındaki kümelerin tarıma uzaklığı ve çevre nüfusu, eşiği geçenlerle karşılaştırıldı.
+
+**Bulgular.** Dağılım tek tepelidir ve yüzde 50 civarında ne tepe ne vadi vardır.
+
+| Orman payı | Küme | Pay |
+|---|---|---|
+| Yüzde 0 ile 5 | 4.614 | yüzde 76.9 |
+| Yüzde 5 ile 30 | 943 | yüzde 15.7 |
+| Yüzde 30 ile 40 | 128 | yüzde 2.1 |
+| Yüzde 40 ile 50 | 65 | yüzde 1.1 |
+| Yüzde 50 ile 60 | 72 | yüzde 1.2 |
+| Yüzde 60 ile 80 | 88 | yüzde 1.5 |
+| Yüzde 80 ile 100 | 90 | yüzde 1.5 |
+
+Eşik duyarlılığı ise belirgindir.
+
+| Orman saflığı şartı | Pozitif | Beş katlı AUC | Tarım kenarı katsayısı | Nüfus katsayısı |
+|---|---|---|---|---|
+| Yüzde 50 (mevcut) | 3.397 | 0.843 | eksi 0.448 | artı 0.880 |
+| Yüzde 55 | 1.549 | 0.811 | eksi 0.315 | artı 0.631 |
+| Yüzde 60 | 1.374 | 0.806 | eksi 0.267 | artı 0.630 |
+| Yüzde 70 | 1.048 | 0.794 | eksi 0.237 | artı 0.559 |
+| Yüzde 80 | 715 | 0.774 | eksi 0.188 | artı 0.484 |
+| Eşik yerine sürekli ağırlık | 3.397 | 0.841 | eksi 0.376 | artı 0.741 |
+
+Üçüncü test ise beklenenin tersini verdi: yüzde 40 ile 50 bandındaki yangınlar, eşiği geçenlerden tarıma uzaklık bakımından (ortanca 3.54 ile 3.15 kilometre, Mann-Whitney p eşittir 0.55) ve çevre nüfus bakımından (590 ile 613, p eşittir 0.96) ayırt edilemez.
+
+**Yanıt.** İtiraz kısmen haklıdır ve sınırı artık bilinmektedir. Filtrenin asıl işi tartışmasız doğrudur: kümelerin yüzde 77'si neredeyse sıfır ormanlıdır, yani saf anız yangınıdır ve bunların ayıklanması hiçbir eşik tartışmasına gerek bırakmaz. Eşiğin tam yeri de marjinal olarak önemsizdir; yüzde 40 ile 50 bandındaki yangınlar eşiği geçenlerden ayırt edilemediğine göre eşiği yüzde 40'a çekmek katsayıları kayda değer biçimde değiştirmezdi.
+
+Buna karşılık eşiğin varlığı önemsiz değildir. Saflık şartı yükseldikçe tarım kenarı katsayısı yüzde 58, nüfus katsayısı yüzde 45 küçülür. Bunun okuması şudur: insan erişimi mekanizması ağırlıklı olarak orman ile tarımın kesiştiği arayüzde çalışır, saf orman içinde zayıflar. Bu, tezi çürütmez ama kapsamını daraltır ve dışarıya sunumda bu ayrım yapılmalıdır.
+
+Metodolojik olarak asıl kusur eşiğin değeri değil, cinsidir. Yüzde 50, uzaktan algılamada alansal birimlere tek sınıf atarken kullanılan baskın sınıf kuralıdır; bir orman tanımı değildir. Uluslararası ölçüt (FAO) ormanı yüzde 10 tepe kapalılığıyla tanımlar, 6831 sayılı Orman Kanunu ise ormanı hukuki bir statü olarak tanımlar ve o an ağaç örtüsü olmayan alanları da kapsar. Her iki tanıma göre de Enez yangını bir orman yangınıdır. Dahası mevcut ölçüt, yanmış alan bileşimine yani bir sonuca bakar; sonuç ise söndürme başarısına, rüzgara ve yakıt sürekliliğine bağlıdır ve bunların hiçbiri tutuşma anına ait değildir. Tarlada başlayıp ormanın kenarını yalayan ve hızla söndürülen bir yangın elenirken, aynı yangın ekip geç kalsaydı veri kümesine girecekti; yani mevcut hedef kısmen söndürmeden kaçabilmiş yangınlara doğru yanlıdır. Doğru yön, ölçütü sonuçtan maruziyete taşımaktır: tutuşma noktasının ormana uzaklığı, tutuşmadan önce var olan ve sağlam ölçülebilen bir büyüklüktür. Bu değişiklik sıradaki adımlar arasına alınmıştır.
+
+### İtiraz 4: Hedef kümesi bu dokümandaki tarifle yeniden üretilemiyor
+
+**İtiraz.** Bir hakem, yöntemi okuyup 3.397 olaylık hedef kümesini ham veriden yeniden üretmek isteyebilir. Yeniden üretilemiyorsa, sonraki bütün sayılar doğrulanamaz.
+
+**Sınama.** Boru hattı ham veriden adım adım yeniden kuruldu ve her adım kayıtlı sayılarla karşılaştırıldı. Ardından bölüm 6'daki kural (ayak izinin yüzde 50'den fazlası ağaç ya da maki) dört farklı ayak izi tanımıyla uygulandı ve boru hattının kararıyla karşılaştırıldı.
+
+**Bulgular.** İlk iki adım sadıktır. Yaz tespiti sayısı birebir tutar (225.856). Kümeleme 53.438 olay verir, kayıtlı 53.593 sayısından yüzde 0.29 sapar; bu fark, dokümanda tarif edilen üç boyutlu ızgara hash yaklaşımının komşu kova karşılaştırmasında birkaç bağı kaçırmasıyla tutarlıdır. Kümelerin boyutları yayımlanmış olay indeksiyle yüzde 99.6 oranında birebir aynıdır ve bölüm 6'daki 3.160 ağaç ile 237 maki ayrımı da yeniden üretilir.
+
+Filtre adımı ise yeniden üretilemez.
+
+| Ayak izi tanımı | Cohen kappa | Kesinlik | Duyarlılık |
+|---|---|---|---|
+| 190 metre tampon, sadeleştirilmiş | 0.656 | yüzde 85.2 | yüzde 55.6 |
+| 190 metre tampon, sadeleştirilmemiş | 0.646 | yüzde 85.2 | yüzde 54.3 |
+| 375 metre tampon | 0.581 | yüzde 76.6 | yüzde 49.6 |
+| 90 metre tampon | 0.721 | yüzde 92.8 | yüzde 60.8 |
+
+Korunan 3.397 olayın yaklaşık yarısı (yüzde 49) dokümandaki eşiği sağlamaz; yüzde 28'i yüzde 30'un bile altındadır. Hata iki yönlüdür: kuralı sağladığı halde elenmiş kümeler de vardır.
+
+**Yanıt.** İtiraz haklıdır. Kümeleme adımı yeniden üretilebilir ve sadıktır; sapma filtre adımındadır ve o adımı üreten betik arşivde bulunmamaktadır, dolayısıyla farkın nereden geldiği kesin olarak saptanamamıştır. Bu, sonuçların yanlış olduğu anlamına gelmez ama hedef kümesinin kaynağının belgesiz olduğu anlamına gelir ve bu haliyle bir tez için kabul edilebilir değildir.
+
+Açık kapatılmıştır: hedefi ham veriden tek komutla, sabit tohumla ve her adımın sayısını bir manifest dosyasına yazarak kuran `hedef_kur.py` yazılmıştır. Betik iki tasarım kararı taşır. Birincisi, eşik dondurulmuş değildir; her kayıt için tam arazi örtüsü sınıf dağılımı diske yazılır, böylece farklı bir eşikle çalışmak yeniden koşu gerektirmez ve İtiraz 3'teki duyarlılık analizi ucuzlar. İkincisi, ölçüm operatörü iki sınıfta aynıdır (aşağıya bakınız).
+
+Bu itiraz, İtiraz 3'teki sayıları da nitelendirir: oradaki duyarlılık analizi kaynağı belgesiz bir hedef kümesi üzerinde yürütülmüştür, dolayısıyla eğilimi gösterir ama kesin değerleri taşımaz. Yeni betikle üretilen hedef kümesi üzerinde tekrarlanacaktır.
+
+### İtiraz 5: Pozitif sınıf ile referans sınıfı farklı kurallarla tanımlanmıştır
+
+**İtiraz.** Pozitif olaylar ayak izinin alan çoğunluğu testiyle orman sayılır (bölüm 6), referans noktaları ise tek nokta testiyle (bölüm 7.2: rastgele noktalardan WorldCover'a göre gerçekten orman ya da maki olanlar tutuldu). Bunlar farklı katılıkta işlemlerdir. Tek nokta testi bir maki mozaiğindeki noktayı rahatça geçirir, alan çoğunluğu testi aynı mozaikteki yangını eler. Model böylece iki sınıfı, sistematik olarak farklı tanımlanmış bir uzayda ayırt etmeye çalışır.
+
+**Sınama.** Eğitim tablosundaki arazi örtüsü etiketleri iki sınıf için ayrı ayrı sayıldı.
+
+**Bulgular.** Pozitiflerde dağılım 3.160 ağaç ve 237 maki, referanslarda 3.303 ağaç ve 115 makidir. Referans tarafındaki maki payı (yüzde 3.4) pozitif taraftakinin (yüzde 7.0) yarısı kadardır; iki sınıf aynı orman tanımından gelmemektedir.
+
+**Yanıt.** İtiraz haklıdır ve düzeltilmiştir. `hedef_kur.py` içinde her referans noktasına, rastgele seçilmiş bir pozitif olayın tespit deseni giydirilir; yani referans noktası da aynı şekil ve aynı alan üzerinden, aynı eşikle ölçülür. Referans noktaları ayrıca ilçe poligonlarıyla Türkiye kara sınırlarına kırpılır ve iki sınıf, eşiği geçen sayıya göre birebir dengelenir. Bu düzeltmenin model sonuçlarına etkisi, yeni hedef kümesi üretildiğinde ölçülüp buraya işlenecektir.
+
 ---
 
 ## 13. Kaynaklar
@@ -341,3 +427,5 @@ Son güncelleme: 6 Ağustos 2026 (Bilinen İtirazlar ve Yanıtlar bölümü ekle
 Son güncelleme: 6 Ağustos 2026 (İtiraz 1 nihai testi, zamansal case-crossover, 900 olayla tamamlandı ve bölüme işlendi; modelin hava alt skorunun gün zamanlama becerisi case-crossover AUC 0.587)
 
 Son güncelleme: 6 Ağustos 2026 (İtiraz 2 eklendi, mekansal sızıntı sınandı; bölüm 7.8'deki mekansal blok 0.763 uzlaştırıldı, standart mekansal blok CV 0.83 ile 0.84, 0.763 büyük ayrımlı en kötü durum alt sınırı olarak netleştirildi)
+
+Son güncelleme: 15 Ağustos 2026 (İtiraz 3, 4 ve 5 eklendi. Enez Büyükevren yangınının veri kümesinde bulunmaması üzerine hedef tanımı denetlendi: yüzde 50 eşiğinin doğal bir ayrım noktası olmadığı ve saflık şartı yükseldikçe tarım kenarı katsayısının yüzde 58, nüfus katsayısının yüzde 45 küçüldüğü ölçüldü; hedef kümesinin bu dokümandaki tarifle yeniden üretilemediği saptandı, kümeleme adımı yüzde 99.6 sadık, filtre adımı Cohen kappa 0.72 tavanında; pozitif ve referans sınıflarının farklı kurallarla tanımlandığı doğrulandı. Üç açığı da kapatan `hedef_kur.py` yazıldı)
