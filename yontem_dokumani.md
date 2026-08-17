@@ -161,6 +161,37 @@ Sonradan eklenen not: yukarıdaki sayılar, ısınmasını sezon içinde başlat
 
 Dürüst sınırlar: tehlikenin zaten yüksek olduğu alt kümede (CEMS FFMC 87 ve üzeri, kayıtların yaklaşık dörtte üçü) sıra korelasyonu 0.74'e iner; aralık daraldıkça ince sıralama güçleşir. Haftanın tepe günü, iki bağımsız hava kaynağından beslenildiği için yüzde 46 birebir, yüzde 73 bir gün toleransla örtüşür; uzak günlerin eğilim olarak sunulması ilkesi (bölüm 9) burada da geçerlidir. Bu doğrulamanın modele etkisi yoktur ve olmaması da tasarım gereğidir: model FWI kodlarını eğitimde ve operasyonda aynı motordan alır ve standardize ederek kullanır, yani iç tutarlılık korunur. Doğrulamanın gösterdiği şey, panelde gösterilen kodların göreli tehlike sıralaması olarak dünya referansıyla uyumlu olduğudur. Panel bir gün EFFIS ile yan yana mutlak tehlike sınıfı gösterecekse küçük bir kalibrasyon katmanı eklenmelidir.
 
+### 7.11 Hedefin yeniden kurulması ve model_v5 (düzeltilmiş sayılar)
+
+Bölüm 12'deki İtiraz 3, 4 ve 5, hedef tanımında üç ayrı açık ortaya çıkardı: eşik keyfiydi, hedef kümesi bu dokümandaki tarifle yeniden üretilemiyordu, ve pozitif ile referans sınıfları farklı kurallarla tanımlanmıştı. Üçü de kapatıldı ve sonuç manşetteki rakamı değiştirdi. Bu bölüm yeni kurulumu ve düzeltilmiş sayıları kaydeder.
+
+**Yeni kurulum.** Hedef, `uretim/hedef_kur.py` ile ham veriden tek komutla üretilir; parametreler tek blokta, tohum sabit, her adımın sayısı bir manifest dosyasına yazılır, betik iki koşuda birebir aynı çıktıyı verir. Üç tasarım değişikliği yapıldı.
+
+Birincisi, olayın temsil noktası ayak izinin ağırlık merkezi değil **en erken tespittir**. Gerekçe: ağırlık merkezi yangının yayıldığı yeri gösterir, yayılım ise söndürmeye ve rüzgara bağlıdır; tutuşma modeli sonuca koşullanmamalıdır. Bu sözleşmenin eski boru hattında da kullanıldığı, yeni noktaların eski olay indeksiyle yüzde 99.8 oranında yüz metre içinde örtüşmesiyle doğrulandı (ortanca fark 3.8 metre, kaynağı koordinat yuvarlaması).
+
+İkincisi, **ölçüm operatörü iki sınıfta aynıdır**. Her referans noktasına rastgele seçilmiş bir pozitif olayın tespit deseni giydirilir, yani referans da aynı şekil ve aynı alan üzerinden, aynı eşikle ölçülür. Referanslar ayrıca ilçe poligonlarıyla Türkiye kara sınırına kırpılır ve iki sınıf birebir dengelenir.
+
+Üçüncüsü, orman payı ikili bir kapı değil **ağırlıktır** ve ağırlık iki sınıfa da uygulanır. Bir olay ayak izinin orman payı kadar ağırlıkla girer; yüzde 95 ormansa 0.95, yüzde 48 ise 0.48. Yüzde 40'lık alt sınır tanımsal değil hesaplama sınırıdır (daha aşağısı için hava çekimi maliyeti hızla büyür) ve duyarlılığı aşağıda ölçülmüştür.
+
+Bütün hava ve FWI özellikleri baştan çekildi. Sebebi, eski eğitim tablosunun DC ve KBDI değerlerinin arşivdeki `egitim_fwi_cek.py` ile yeniden üretilememesidir; betiğin penceresi birebir taklit edildiğinde bile değerler tutmaz (örnek: 2016-06-01, 38.069 kuzey 30.993 doğu, kayıtlı DC 244.36, yeniden üretilen 182.20). Kaba hava değişkenleri ile FFMC, DMC ve ISI ise birebir tutar. Bu, İtiraz 4'teki provenans sorununun ikinci belirtisidir; tek tek onarmak yerine bütün özellikler yeniden hesaplandı.
+
+**Düzeltilmiş sayılar.** Yeni hedef 2.748 pozitif ve 2.748 referanstan oluşur (eşik yüzde 40). Beş katlı çapraz doğrulama AUC'si **0.795**'tir. Önceki 0.848 ile arasındaki fark bir model gerilemesi değil, örnekleme çerçevesindeki düzeltmenin bedelidir. Nedeni doğrudan ölçülebilir: eski kurulumda tutuşma noktalarının çevre nüfus ortancası 551, referanslarınki 83'tü (6.7 kat); yeni kurulumda 479'a karşı 98'dir (4.9 kat). Tek başına nüfusun AUC'si 0.766'dan 0.721'e iner. Yani eski kontrastın bir bölümü, iki sınıfın farklı kurallarla tanımlanmasının eseriydi.
+
+**Eşik duyarlılığı büyük ölçüde kayboldu.** Aynı eşik iki sınıfa birden uygulandığında:
+
+| Eşik | Eski kurulum (asimetrik) | Yeni kurulum (simetrik) |
+|---|---|---|
+| Yüzde 40 | ölçülmedi | 0.795, nüfus katsayısı artı 0.612 |
+| Yüzde 50 | 0.843, artı 0.880 | 0.791, artı 0.589 |
+| Yüzde 60 | 0.806, artı 0.630 | 0.789, artı 0.577 |
+| Yüzde 70 | 0.794, artı 0.559 | 0.783, artı 0.525 |
+
+Eski kurulumda eşiği 50'den 70'e çekmek AUC'yi 0.049 düşürüyordu; yeni kurulumda yalnızca 0.013. Yani İtiraz 3'te ölçülen eşik duyarlılığı büyük ölçüde İtiraz 5'teki asimetrinin belirtisiymiş; kök düzeltilince semptom söndü. Ağırlıklı ve sert eşikli sürümler arasında fark yoktur (0.7950 ile 0.7953, eşleştirilmiş fark eksi 0.0002, yüzde 95 aralık eksi 0.0017 ile artı 0.0009); ağırlık modeli iyileştirmez, yalnızca keyfi kararı ortadan kaldırır.
+
+**Tezin çekirdeği ayakta.** Katsayı sıralaması korunur: en güçlü ayraç hâlâ insan baskısıdır (artı 0.609), onu ISI (artı 0.230), FFMC (artı 0.209), en yüksek sıcaklık (artı 0.347) ve iki tarım kenarı ölçümü (eksi 0.197 ve eksi 0.268) izler. Değişen, tezin yönü değil, etkinin büyüklüğü ve manşet rakamın dürüstlüğüdür.
+
+**Dağıtım durumu.** model_v5 bir araştırma sonucudur ve canlı zincire alınmamıştır; canlıda on üç özellikli model_v4 çalışmaktadır. Sebebi, operasyonel ızgaranın hücrelerinin hâlâ WorldCover orman maskesiyle tanımlanmış olması, yani eğitimdeki yüzde 40'lık ayak izi kuralıyla aynı tanımı kullanmamasıdır. Modeli değiştirmeden önce ızgaranın aynı kuralla yeniden türetilmesi gerekir; aksi halde eğitim ile operasyon arasında yeni bir tanım farkı doğar. Bu, açık işler arasındadır.
+
 ---
 
 ## 8. Yapay Zeka ve Makine Öğrenmesinin Rolü
@@ -361,6 +392,10 @@ Buna karşılık eşiğin varlığı önemsiz değildir. Saflık şartı yüksel
 
 Metodolojik olarak asıl kusur eşiğin değeri değil, cinsidir. Yüzde 50, uzaktan algılamada alansal birimlere tek sınıf atarken kullanılan baskın sınıf kuralıdır; bir orman tanımı değildir. Uluslararası ölçüt (FAO) ormanı yüzde 10 tepe kapalılığıyla tanımlar, 6831 sayılı Orman Kanunu ise ormanı hukuki bir statü olarak tanımlar ve o an ağaç örtüsü olmayan alanları da kapsar. Her iki tanıma göre de Enez yangını bir orman yangınıdır. Dahası mevcut ölçüt, yanmış alan bileşimine yani bir sonuca bakar; sonuç ise söndürme başarısına, rüzgara ve yakıt sürekliliğine bağlıdır ve bunların hiçbiri tutuşma anına ait değildir. Tarlada başlayıp ormanın kenarını yalayan ve hızla söndürülen bir yangın elenirken, aynı yangın ekip geç kalsaydı veri kümesine girecekti; yani mevcut hedef kısmen söndürmeden kaçabilmiş yangınlara doğru yanlıdır. Doğru yön, ölçütü sonuçtan maruziyete taşımaktır: tutuşma noktasının ormana uzaklığı, tutuşmadan önce var olan ve sağlam ölçülebilen bir büyüklüktür. Bu değişiklik sıradaki adımlar arasına alınmıştır.
 
+**Sonuç (bölüm 7.11).** Hedef yeniden kurulduğunda bu itirazın büyük bölümü çözüldü, ama beklenmedik bir yoldan. Aynı eşik iki sınıfa birden uygulandığında (İtiraz 5'in düzeltmesi) eşik duyarlılığı büyük ölçüde kaybolur: eşiği yüzde 50'den 70'e çekmek eski kurulumda AUC'yi 0.049 düşürüyordu, yeni kurulumda yalnızca 0.013. Yani burada ölçülen duyarlılığın çoğu, eşiğin kendisinden değil, iki sınıfın farklı kurallarla tanımlanmış olmasından geliyordu. Ayrıca orman payı ikili kapı yerine ağırlık olarak kullanıldığında sonuç değişmez (eşleştirilmiş fark eksi 0.0002), yani eşik artık modelin bir kararı değildir. Geriye kalan gerçek itiraz, ölçütün cinsine ilişkin olandır: hedef hâlâ yanmış alan bileşimine, yani bir sonuca bakmaktadır. Maruziyet ölçütüne geçiş açık iş olarak durmaktadır.
+
+Bu itirazı tetikleyen Enez yangını yeni kurulumda **eğitim kümesinin içindedir**: orman payı 0.474 olduğundan yüzde 40'lık alt sınırı geçer ve 0.474 ağırlıkla girer. Yani artık ne atılmış ne de tam sayılmıştır, bulanıklığı taşınmıştır. Çekilen hava verisi olayın bilinen seyriyle de tutarlıdır: 12 Ağustos 2025 için en yüksek sıcaklık 33.8 derece, nem yüzde 48, rüzgar 29.2 kilometre, FFMC 91.7, ISI 23.7, bileşik FWI 68.0; yani ince yakıt kuru, yayılım bileşeni çok yüksek.
+
 ### İtiraz 4: Hedef kümesi bu dokümandaki tarifle yeniden üretilemiyor
 
 **İtiraz.** Bir hakem, yöntemi okuyup 3.397 olaylık hedef kümesini ham veriden yeniden üretmek isteyebilir. Yeniden üretilemiyorsa, sonraki bütün sayılar doğrulanamaz.
@@ -384,7 +419,11 @@ Korunan 3.397 olayın yaklaşık yarısı (yüzde 49) dokümandaki eşiği sağl
 
 Açık kapatılmıştır: hedefi ham veriden tek komutla, sabit tohumla ve her adımın sayısını bir manifest dosyasına yazarak kuran `hedef_kur.py` yazılmıştır. Betik iki tasarım kararı taşır. Birincisi, eşik dondurulmuş değildir; her kayıt için tam arazi örtüsü sınıf dağılımı diske yazılır, böylece farklı bir eşikle çalışmak yeniden koşu gerektirmez ve İtiraz 3'teki duyarlılık analizi ucuzlar. İkincisi, ölçüm operatörü iki sınıfta aynıdır (aşağıya bakınız).
 
-Bu itiraz, İtiraz 3'teki sayıları da nitelendirir: oradaki duyarlılık analizi kaynağı belgesiz bir hedef kümesi üzerinde yürütülmüştür, dolayısıyla eğilimi gösterir ama kesin değerleri taşımaz. Yeni betikle üretilen hedef kümesi üzerinde tekrarlanacaktır.
+Bu itiraz, İtiraz 3'teki sayıları da nitelendirir: oradaki duyarlılık analizi kaynağı belgesiz bir hedef kümesi üzerinde yürütülmüştür, dolayısıyla eğilimi gösterir ama kesin değerleri taşımaz. Yeni betikle üretilen hedef kümesi üzerinde tekrarlanmıştır (bölüm 7.11).
+
+**İkinci belirti: hava özellikleri.** Aynı sorun eğitim tablosunun hava sütunlarında da bulundu. Arşivdeki `egitim_fwi_cek.py` betiğinin penceresi birebir taklit edildiğinde kaba hava değişkenleri ile FFMC, DMC ve ISI kayıtlı değerlerle tam olarak tutar, ama DC bazı noktalarda ve KBDI sistematik olarak tutmaz (örnek: 2016-06-01, 38.069 kuzey 30.993 doğu, kayıtlı DC 244.36, yeniden üretilen 182.20; aynı gün için kayıtlı KBDI 19.3, yeniden üretilen 22.1). DC modelin bir özelliğidir, KBDI değildir. Bu bulgu tek tek onarılmadı; bunun yerine yeni kurulumda bütün hava ve FWI özellikleri baştan çekildi, böylece tablo iç tutarlılığı garanti altına alındı.
+
+**Sonuç.** Açık kapandı. Hedef kümesi ve bütün özellikler artık kaydedilmiş betiklerden yeniden üretilebilir; düzeltilmiş sayılar bölüm 7.11'dedir. Genel ders, tek tek dosyaları onarmaya çalışmak yerine üretim zincirinin tamamını betiklere bağlamaktır.
 
 ### İtiraz 5: Pozitif sınıf ile referans sınıfı farklı kurallarla tanımlanmıştır
 
@@ -394,7 +433,11 @@ Bu itiraz, İtiraz 3'teki sayıları da nitelendirir: oradaki duyarlılık anali
 
 **Bulgular.** Pozitiflerde dağılım 3.160 ağaç ve 237 maki, referanslarda 3.303 ağaç ve 115 makidir. Referans tarafındaki maki payı (yüzde 3.4) pozitif taraftakinin (yüzde 7.0) yarısı kadardır; iki sınıf aynı orman tanımından gelmemektedir.
 
-**Yanıt.** İtiraz haklıdır ve düzeltilmiştir. `hedef_kur.py` içinde her referans noktasına, rastgele seçilmiş bir pozitif olayın tespit deseni giydirilir; yani referans noktası da aynı şekil ve aynı alan üzerinden, aynı eşikle ölçülür. Referans noktaları ayrıca ilçe poligonlarıyla Türkiye kara sınırlarına kırpılır ve iki sınıf, eşiği geçen sayıya göre birebir dengelenir. Bu düzeltmenin model sonuçlarına etkisi, yeni hedef kümesi üretildiğinde ölçülüp buraya işlenecektir.
+**Yanıt.** İtiraz haklıdır ve düzeltilmiştir. `hedef_kur.py` içinde her referans noktasına, rastgele seçilmiş bir pozitif olayın tespit deseni giydirilir; yani referans noktası da aynı şekil ve aynı alan üzerinden, aynı eşikle ölçülür. Referans noktaları ayrıca ilçe poligonlarıyla Türkiye kara sınırlarına kırpılır ve iki sınıf, eşiği geçen sayıya göre birebir dengelenir.
+
+**Düzeltmenin bedeli ölçüldü ve büyüktür.** Simetrik kurulumda beş katlı AUC 0.848'den **0.795'e** iner. Bu bir model gerilemesi değildir; eski değerin bir bölümünün iki sınıfın farklı kurallarla tanımlanmasından geldiğini gösterir. Doğrudan izi şudur: eski kurulumda tutuşma noktalarının çevre nüfus ortancası 551, referanslarınki 83'tü (6.7 kat); yeni kurulumda 479'a karşı 98'dir (4.9 kat) ve tek başına nüfusun AUC'si 0.766'dan 0.721'e düşer. Referans sınıfı artık pozitiflerle aynı türden karışık araziden seçildiği için kontrast gerçekten zorlaşmıştır.
+
+Bu itirazın çözülmesi, İtiraz 3'ü de büyük ölçüde çözmüştür: eşik duyarlılığının çoğu bu asimetrinin belirtisiymiş (ayrıntı bölüm 7.11). Bu, bölüm 12'nin en öğretici sonucudur; üç itirazdan ikisinin ortak kökü tek bir tasarım hatasıymış.
 
 ---
 
@@ -429,3 +472,5 @@ Son güncelleme: 6 Ağustos 2026 (İtiraz 1 nihai testi, zamansal case-crossover
 Son güncelleme: 6 Ağustos 2026 (İtiraz 2 eklendi, mekansal sızıntı sınandı; bölüm 7.8'deki mekansal blok 0.763 uzlaştırıldı, standart mekansal blok CV 0.83 ile 0.84, 0.763 büyük ayrımlı en kötü durum alt sınırı olarak netleştirildi)
 
 Son güncelleme: 15 Ağustos 2026 (İtiraz 3, 4 ve 5 eklendi. Enez Büyükevren yangınının veri kümesinde bulunmaması üzerine hedef tanımı denetlendi: yüzde 50 eşiğinin doğal bir ayrım noktası olmadığı ve saflık şartı yükseldikçe tarım kenarı katsayısının yüzde 58, nüfus katsayısının yüzde 45 küçüldüğü ölçüldü; hedef kümesinin bu dokümandaki tarifle yeniden üretilemediği saptandı, kümeleme adımı yüzde 99.6 sadık, filtre adımı Cohen kappa 0.72 tavanında; pozitif ve referans sınıflarının farklı kurallarla tanımlandığı doğrulandı. Üç açığı da kapatan `hedef_kur.py` yazıldı)
+
+Son güncelleme: 17 Ağustos 2026 (hedef kümesi yeniden kuruldu ve model_v5 donduruldu; bölüm 7.11 eklendi. Temsil noktası en erken tespite çekildi, ölçüm operatörü iki sınıfta eşitlendi, orman payı ikili kapı yerine ağırlığa çevrildi, bütün hava ve FWI özellikleri baştan çekildi. Düzeltilmiş beş katlı AUC 0.795; düşüş örnekleme çerçevesindeki asimetrinin düzeltilmesinden gelir, tek başına nüfusun AUC'si 0.766'dan 0.721'e iner. Eşik duyarlılığı simetri sonrası 0.049'dan 0.013'e indi, yani İtiraz 3'ün büyük bölümü İtiraz 5'in belirtisiymiş. İtiraz 3, 4 ve 5 sonuçlarıyla güncellendi; canlıda model_v4 kalmaya devam ediyor)

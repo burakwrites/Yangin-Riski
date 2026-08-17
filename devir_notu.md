@@ -104,6 +104,18 @@ Tetikleyici: Edirne Enez Büyükevren yangınının (11-12 Ağustos 2025) Geçmi
 
 Zincir uçtan uca sınandı: mevcut `operasyonel_tahmin.json` ile v3 ve v4 ayrı ayrı koşturuldu. İkisi de 9.472 hücrenin tamamını skorluyor, harita satırı 15 alanda kalıyor, hiçbir hücre düşmüyor. Tepe risk korelasyonu Pearson 0,969, Spearman 0,964; ilk 20 riskli ilçenin 14'ü ortak. Test sonrası `data/skorlar.json` botun sürümüne geri alındı.
 
+## 17 Ağustos 2026'da yapılanlar
+
+Hedef kümesi baştan kuruldu ve model yeniden dondurularak model_v5 üretildi. Ayrıntı yöntem dokümanı bölüm 7.11.
+
+Üç değişiklik: temsil noktası ayak izi merkezinden **en erken tespite** çekildi (merkez, yangının yayıldığı yeri gösterir ve yayılım söndürmeye bağlıdır; eski boru hattının da bu sözleşmede olduğu, yeni noktaların eski indeksle yüzde 99.8 oranında yüz metre içinde örtüşmesiyle doğrulandı). Ölçüm operatörü iki sınıfta eşitlendi. Orman payı ikili kapı yerine iki sınıfa da uygulanan ağırlığa çevrildi. Bütün hava ve FWI özellikleri baştan çekildi (5.496 nokta), çünkü eski tablonun DC ve KBDI değerleri arşivdeki betikle yeniden üretilemiyordu.
+
+**Manşet rakam düştü ve bu beklenen bir sonuçtur.** Beş katlı AUC 0.848'den 0.795'e indi. Sebep model değil örnekleme çerçevesi: eski kurulumda pozitiflerin çevre nüfus ortancası 551, referanslarınki 83'tü; yenide 479'a karşı 98. Tek başına nüfusun AUC'si 0.766'dan 0.721'e iniyor. Buna karşılık eşik duyarlılığı neredeyse yok oldu (eşiği yüzde 50'den 70'e çekmenin bedeli 0.049'dan 0.013'e indi) ve tezin katsayı sıralaması korundu; en güçlü ayraç hâlâ insan baskısı.
+
+Enez yangını artık eğitim kümesinin içinde, 0.474 ağırlıkla.
+
+Yeni betikler `atolye/uretim/` altında: `hedef_kur.py`, `egitim_noktalari_kur.py`, `egitim_hava_cek.py`, `model_v5_dondur.py`, `farmdist_wc_cek.py`, `model_v4_dondur.py`.
+
 ## Açık işler
 
 1. **Operasyonel orman maskesini WorldCover'a taşımak. TAMAMLANDI (31 Temmuz 2026).** Izgara 5.254'ten 9.472 hücreye çıktı, eski hücreler ve kuraklık birikimi korundu, durum dosyası kısmi ısınmayla genişletildi, yöntem dokümanı bölüm 9 ve 10 güncellendi. İzlenecek: yeni hücrelerin ilk ısınması nedeniyle sonraki günlük koşuların süresi ve dosya boyutu (`data/skorlar.json` 455 KB'den ~800 KB'ye çıktı, panel her açılışta indiriyor).
@@ -115,7 +127,9 @@ Zincir uçtan uca sınandı: mevcut `operasyonel_tahmin.json` ile v3 ve v4 ayrı
 7. **İsteğe bağlı.** yanginriski.com alan adının Pages'e bağlanması, repoya README, durum dosyasının küçültülmesi.
 8. **Yeni hedef kümesiyle modeli eğitmek.** `hedef_kur.py` 2.054 pozitif üretti ama bunların bir kısmı eski eğitim tablosunda yok, dolayısıyla hava ve FWI özellikleri elde değil. Open-Meteo arşivinden çekim gerekiyor. Bu yapılmadan model_v4 eski (kaynağı belgesiz) hedef kümesiyle eğitilmiş durumdadır; bu, bölüm 12 İtiraz 4'te açıkça yazılıdır.
 9. **Hedef ölçütünü maruziyete taşımak.** Mevcut ölçüt yanmış alan bileşimine, yani bir sonuca bakıyor; sonuç söndürme başarısına bağlı olduğu için hedef kısmen söndürmeden kaçabilmiş yangınlara yanlı. Önerilen yön: tutuşma noktasının en yakın ormana uzaklığı, yani tutuşmadan önce var olan ve sağlam ölçülebilen bir büyüklük. Ayrıntı bölüm 12, İtiraz 3.
-10. **Eski 3.397'lik hedef kümesinin akıbeti.** Panelin Geçmiş Yangınlar katmanı hâlâ o kümeyi (`olaylar_indeks.json`) okuyor. Yeni küme modele geçtiğinde panelin de aynı kümeyi göstermesi gerekir, yoksa doküman ile panel farklı sayılar anlatır.
+10. **Panelin Geçmiş Yangınlar katmanı.** Olaylar `index.html` içine gömülü (`const DATA={"events":[...],"n":3397,...}`, her kayıt `lat, lon, y, d, t, h, dsr, p30, lc, sz, i, il, ilce`). Doküman artık 2.748 olaydan söz ediyor, panel hâlâ 3.397 gösteriyor. Paneli güncellemek için yeni olaylara model skoru ve resmi il/ilçe etiketi üretilip `DATA` bloğu yeniden yazılmalı.
+11. **model_v5'i canlıya almak.** Bekliyor, çünkü operasyonel ızgaranın hücreleri WorldCover orman maskesiyle tanımlı, eğitimdeki yüzde 40'lık ayak izi kuralıyla değil. Modeli değiştirmeden önce ızgara aynı kuralla yeniden türetilmeli, yoksa eğitim ile operasyon arasında yeni bir tanım farkı doğar. Ayrıca eğitimdeki `fuel` artık ayak izinden türeyen sürekli bir değer, ızgaradaki ise sınıf tabanlı; katsayısı küçük (eksi 0.07) ama tanım farkı kapatılmalı.
+12. **`atolye/uretim/` sürüm kontrolünde değil.** İtiraz 4'ün tamamı "üreten betik arşivde yok" sorunuydu ve çözümü betikleri yazmaktı; ama o betikler şu an yalnızca yerel diskte duruyor, git'te değil. Bu haliyle aynı sorun tekrar edebilir. Ya `uretim/` deponun altına taşınıp izlenmeli ya da ayrı bir depo açılmalı. Ham veri ve ara ürünler `.gitignore`'da kalır.
 
 ## Izgara hakkında bilinenler
 
